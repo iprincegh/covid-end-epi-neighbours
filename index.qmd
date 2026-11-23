@@ -190,7 +190,7 @@ stopifnot(nrow(npi) == 5, nrow(alarm) == 2)
 
 ```{r}
 #| label: fig-series
-#| fig-cap: "Weekly cases per 100,000 in each ABS and the regional trend, with the trips out of all ABS below. Lines mark when each restriction starts (solid) or ends (dashed)."
+#| fig-cap: "Weekly cases per 100,000 in each ABS and in Catalunya as a whole, with the trips out of all ABS below. Lines mark when each restriction starts (solid) or ends (dashed)."
 #| fig-width: 11
 #| fig-height: 7
 # Colour of each measure
@@ -231,16 +231,18 @@ lines = list(
 		"solid", "dashed"), events$text), name = "Restrictions"),
 	scale_x_date(limits = window, expand = c(0, 0)))
 
-# Weekly incidence by ABS, with the regional trend
+# Weekly cases per 100,000 in Catalunya as a whole: all cases over all residents
+regional = data.frame(date = dates, inc = colSums(Y) / sum(popv) * 1e5)
+
+# Weekly incidence by ABS, with Catalunya as a whole
 incidence = data.frame(id = rep(ids, 58), date = rep(dates, each = n),
 		inc = c(Y) / popv * 1e5) |>
 	ggplot(aes(date, inc)) +
 	geom_line(aes(group = id, colour = "One ABS"), linewidth = 0.1,
 		alpha = 0.3) +
-	geom_smooth(aes(colour = "Regional trend"), method = "gam",
-		formula = y ~ s(x, k = 30), se = FALSE, linewidth = 0.8) +
+	geom_line(data = regional, aes(colour = "Catalunya"), linewidth = 0.8) +
 	scale_colour_manual(values = c(`One ABS` = "#9ecae1",
-		`Regional trend` = "black"), name = "Cases",
+		Catalunya = "black"), name = "Cases",
 		guide = guide_legend(override.aes = list(alpha = 1, linewidth = 0.6))) +
 	ggnewscale::new_scale_colour() +
 	lines +
@@ -283,6 +285,18 @@ CASES_AT = c(0, 50, 100, 200, 400, 800, 13000)
 stopifnot(max(incidence_w) < max(CASES_AT))
 
 # One frame: the cases map, and the trips with the week marked
+# A weekly series with the restriction lines and the mapped week marked
+series = \(x, v, w, label) x |>
+	ggplot(aes(date, .data[[v]])) +
+	geom_vline(data = events, aes(xintercept = date, colour = measure,
+		linetype = type), linewidth = 0.4, show.legend = FALSE) +
+	scale_colour_manual(values = NPI_COL) +
+	scale_linetype_manual(values = c(start = "solid", end = "dashed")) +
+	geom_line(colour = "grey30") +
+	geom_point(data = x[w, ], size = 2.5) +
+	scale_x_date(limits = window, expand = c(0, 0)) +
+	labs(x = NULL, y = label)
+
 frame = \(w) {
 	map = abs |>
 		mutate(cases = cut(incidence_w[w, ], CASES_AT, include.lowest = TRUE,
@@ -293,14 +307,12 @@ frame = \(w) {
 		scale_fill_brewer(palette = "YlOrRd", drop = FALSE) +
 		labs(fill = "Cases per\n100,000") +
 		theme_void()
-	trips_week = mobility |>
-		ggplot(aes(date, trips)) +
-		geom_line(colour = "grey40") +
-		geom_vline(xintercept = dates[w]) +
-		geom_point(data = mobility[w, ], size = 2.5) +
-		labs(x = NULL, y = "Trips out of ABS\n(millions a day)")
-	map / trips_week +
-		plot_layout(heights = c(3, 1)) +
+	cases_week = series(regional, "inc", w, "Cases per 100,000\nin Catalunya") +
+		theme(axis.text.x = element_blank())
+	trips_week = series(mobility, "trips", w,
+		"Trips out of ABS\n(millions a day)")
+	map / cases_week / trips_week +
+		plot_layout(heights = c(3, 1, 1)) +
 		plot_annotation(title = paste("Catalunya, week of", day(dates[w])))
 }
 ```
@@ -308,7 +320,7 @@ frame = \(w) {
 ```{r}
 #| label: fig-animation
 #| eval: !expr knitr::is_html_output()
-#| fig-cap: "Weekly cases per 100,000 by ABS, one frame per week. Below: trips out of all ABS, with the mapped week marked."
+#| fig-cap: "Weekly cases per 100,000 by ABS, one frame per week. Below: cases per 100,000 in Catalunya and trips out of all ABS, with the mapped week marked and the restriction lines of Figure 1."
 #| fig-width: 8
 #| fig-height: 8.5
 #| fig-show: animate
@@ -321,7 +333,7 @@ for (w in 1:58) print(frame(w))
 ```{r}
 #| label: fig-peak-week
 #| eval: !expr '!knitr::is_html_output()'
-#| fig-cap: "Weekly cases per 100,000 by ABS in the week cases peaked; the online version animates all weeks. Below: trips out of all ABS, with the week marked."
+#| fig-cap: "Weekly cases per 100,000 by ABS in the week cases peaked; the online version animates all weeks. Below: cases per 100,000 in Catalunya and trips out of all ABS, with the week marked and the restriction lines of Figure 1."
 #| fig-width: 8
 #| fig-height: 8.5
 # The week with most cases
