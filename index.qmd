@@ -1,0 +1,960 @@
+---
+title: "Neighbours by boundaries or by trips: endemic-epidemic models of COVID-19 in Catalunya"
+author: "Prince Oppong Boakye"
+date: today
+format:
+  html:
+    toc: true
+    number-sections: true
+    code-fold: true
+    embed-resources: true
+    lightbox: auto
+  typst:
+    toc: true
+    number-sections: true
+    echo: false
+    margin:
+      x: 2cm
+      y: 2cm
+bibliography: references.bib
+execute:
+  warning: false
+  message: false
+---
+
+# Introduction
+
+COVID-19 spreads between basic health areas (ABS) as well as within them. The endemic-epidemic model `hhh4`
+[@meyer2014; @meyer2017] splits the cases in each area and time period into three parts:
+
+- **Endemic**: cases not linked to recent cases, in proportion to population.
+- **Autoregressive**: cases from past cases in the same ABS.
+- **Neighbour**: cases from past cases in other ABS.
+
+The neighbour component needs weights that define which ABS are linked and how closely. Standard models base these
+weights on shared borders. People often travel beyond adjacent areas, so trips may describe contact between ABS
+better. We test this on weekly cases in Catalunya's 374 ABS from 22 March 2020 to 1 May 2021, with neighbours
+defined by shared boundaries, by trip orders or by trip shares. We compare the three by in-sample fit, one-week-ahead
+forecasts and how the fitted cases split across the components, and check whether the ranking holds with
+temperature and restrictions.
+
+The data combine five sources:
+
+- **Cases**: confirmed COVID-19 counts from BSC Flow-Maps [@poncedeleon2024data], with two ABS taken from the
+  official CatSalut series.
+- **Mobility**: daily trips between ABS from MITMA [@niraula2026data].
+- **Population**: the 2021 registered population of each ABS (CatSalut).
+- **Temperature**: daily mean temperature by ABS (AEMET).
+- **Restrictions**: the dates of the national and Catalan decrees (BOE, DOGC).
+
+# Data
+
+::: {.content-visible when-format="html"}
+## Setup
+
+```{r}
+#| label: libraries
+suppressMessages({
+	library(surveillance)
+	library(sf)
+	library(ggplot2)
+	library(dplyr)
+	library(tidyr)
+	library(patchwork)
+})
+
+# Input folders: the Catalunya panel (Spain-data) and the derived inputs of
+# bayesian-end-epi-mobility; set SPAIN_DATA and INPUTS to use other locations
+spain = \(...) file.path(Sys.getenv("SPAIN_DATA", "../Spain-data"), ...)
+out = \(f) file.path(Sys.getenv("INPUTS", "../slater/outputs"), f)
+
+# Plot theme and colours
+theme_set(theme_minimal(base_size = 11) +
+	theme(panel.grid.minor = element_blank()))
+LONLAT = coord_sf(datum = st_crs(4326))
+COMPONENT = c(Endemic = "grey70", Autoregressive = "#3b6ea8",
+	Neighbour = "#e0913a")
+MODEL = c(Boundaries = "#3b6ea8", `Trip orders` = "#e0913a",
+	`Trip shares` = "#6a9f58")
+ORDER = c(Origin = "black", `1` = "#c6dbef", `2` = "#6baed6",
+	`3` = "#2171b5")
+```
+
+```{r}
+#| label: helpers
+# Fitted cases of each component, [week, ABS]
+components = \(f) {
+	m = meanHHH(f$coefficients, terms(f))
+	list(Endemic = m$endemic, Autoregressive = m$epi.own,
+		Neighbour = m$epi.neighbours, mean = m$mean)
+}
+
+# Get model diagnostics
+diagnostics = \(f) {
+	y = observed(f$stsObj)[f$control$subset, ]
+	c(AIC = AIC(f), logLik = as.numeric(logLik(f)),
+		RMSE = sqrt(mean((y - fitted(f))^2)))
+}
+
+# Estimate and 95% Wald interval, computed on the scale of estimation: log for
+# the rates and ratios in exp_names, log(1 / psi) for the overdispersion
+wald = \(f, exp_names) {
+	b = coef(f, reparamPsi = FALSE)
+	se = sqrt(diag(vcov(f, reparamPsi = FALSE)))
+	x = cbind(est = b, lo = b - 1.96 * se, hi = b + 1.96 * se)
+	e = names(b) %in% exp_names
+	x[e, ] = exp(x[e, ])
+	o = names(b) == "-log(overdisp)"
+	x[o, ] = exp(-x[o, c(1, 3, 2)])
+	rownames(x)[o] = "overdisp"
+	x
+}
+
+# Components of one fit as a long table, for the ABS in cols
+long = \(m, cols = seq_len(n)) names(COMPONENT) |>
+	lapply(\(p) data.frame(component = p,
+		date = rep(dates[-1], length(cols)),
+		abs = rep(abs$name[cols], each = length(dates) - 1),
+		cases = c(m[[p]][, cols, drop = FALSE]))) |>
+	bind_rows() |>
+	mutate(component = factor(component, rev(names(COMPONENT))))
+```
+:::
+
+::: {.content-visible when-format="html"}
+## Load and process data
+
+```{r}
+#| label: data
+# Daily cases and population, 22 March 2020 to 1 May 2021
+d = readRDS(out("daily_catalunya_2020-03-22_2021-05-01_inputs.rds"))
+ids = d$ids
+n = length(ids)
+popv = d$pop
+stopifnot(n == 374, length(d$dates) == 406,
+	weekdays(d$dates[1]) == "Sunday")
+
+# ABS polygons, in the order of the cases
+abs = spain("outputs/catalunya/geometry/cat_abs.gpkg") |>
+	st_read(quiet = TRUE) |>
+	slice(match(ids, id))
+
+# Weekly cases, Sunday to Saturday, [ABS, week]
+week = rep(1:58, each = 7)
+Y = d$cases |>
+	apply(1, \(x) tapply(x, week, sum)) |>
+	t()
+dates = d$dates[seq(1, 406, 7)]
+
+# Mean trips a day between ABS, [origin, destination]
+od = readRDS(out("od_monthly_catalunya_2020-03-22_2021-05-01.rds"))
+stopifnot(identical(dimnames(od$trips)[[1]], ids))
+trips = apply(od$trips, 1:2, sum) / 406
+diag(trips) = 0
+
+# Daily trips out of each ABS, temperature and restrictions, from the panel
+panel = spain("outputs/catalunya/panel/cat_abs_main_noncollinear.parquet") |>
+	arrow::read_parquet(col_select = c("id", "date", "trips_out", "temp_mean",
+		"npi_alarm", "npi_hibernation", "npi_hospitality")) |>
+	filter(id %in% ids, date >= min(d$dates), date <= max(d$dates)) |>
+	mutate(week = week[match(date, d$dates)])
+stopifnot(nrow(panel) == n * 406, !anyNA(panel))
+
+# Trips out of all ABS, weekly mean of the daily totals, millions a day
+mobility = panel |>
+	summarise(trips = sum(trips_out), .by = c(week, date)) |>
+	summarise(trips = mean(trips) / 1e6, .by = week) |>
+	mutate(date = dates[week])
+
+# Weekly mean of a daily variable, [week, ABS]
+weekly = \(v) tapply(panel[[v]], list(panel$week, panel$id), mean)[, ids]
+
+# Adjacency of the ABS (queen), [from, to]
+a = readRDS(spain("outputs/catalunya/geometry/cat_abs_topology.rds"))$adjacency
+a = a[ids, ids]
+diag(a) = 0
+
+# Restrictions in force in Catalunya, with the dates of the decrees
+source(spain("helpers/restrictions.R"))
+npi = NPI |>
+	filter(region %in% c("ES", "CT")) |>
+	select(measure, label, start, end)
+alarm = filter(npi, measure == "npi_alarm")
+stopifnot(nrow(npi) == 5, nrow(alarm) == 2)
+```
+:::
+
+**Catalunya: `r ncol(Y)` weeks, `r n` ABS, `r format(sum(Y), big.mark = ",")` cases.**
+
+## Exploratory visualization
+
+```{r}
+#| label: fig-series
+#| fig-cap: "Weekly cases per 100,000 in each ABS and the regional trend, with the trips out of all ABS below. Lines mark when each restriction starts (solid) or ends (dashed)."
+#| fig-width: 11
+#| fig-height: 7
+# Colour of each measure
+NPI_COL = c(npi_alarm = "#6a3d9a", npi_hibernation = "#1b9e77",
+	npi_hospitality = "#d95f02", npi_curfew = "#6a3d9a")
+
+# Day month year, without a leading zero
+day = \(x) paste(as.integer(format(x, "%d")), format(x, "%b %Y"))
+
+# Starts and ends inside the study window, one line per date
+window = range(dates) + c(0, 6)
+events = bind_rows(
+		mutate(npi, date = start, type = "start", text = label),
+		mutate(npi, date = end, type = "end", text = paste("End:", label))) |>
+	filter(date > window[1], date < window[2]) |>
+	summarise(text = paste(text, collapse = " and "), measure = measure[1],
+		.by = c(date, type)) |>
+	mutate(text = paste0(sub(" and Curfew", " and curfew", text), ", ",
+		day(date))) |>
+	arrange(date) |>
+	mutate(text = factor(text, text))
+
+# Starts and ends outside the window, for the caption
+outside = bind_rows(mutate(npi, date = start, what = "began"),
+		mutate(npi, date = end, what = "ended")) |>
+	filter(date < window[1] | date > window[2]) |>
+	summarise(text = paste(label, collapse = " and "), .by = c(date, what)) |>
+	mutate(text = paste(sub(" and Curfew", " and curfew", text), what,
+		day(date)))
+
+# Event lines in one key: colour by measure, solid at starts, dashed at ends
+lines = list(
+	geom_vline(data = events, aes(xintercept = date, colour = text,
+		linetype = text), linewidth = 0.5),
+	scale_colour_manual(values = setNames(NPI_COL[events$measure],
+		events$text), name = "Restrictions"),
+	scale_linetype_manual(values = setNames(ifelse(events$type == "start",
+		"solid", "dashed"), events$text), name = "Restrictions"),
+	scale_x_date(limits = window, expand = c(0, 0)))
+
+# Weekly incidence by ABS, with the regional trend
+incidence = data.frame(id = rep(ids, 58), date = rep(dates, each = n),
+		inc = c(Y) / popv * 1e5) |>
+	ggplot(aes(date, inc)) +
+	geom_line(aes(group = id, colour = "One ABS"), linewidth = 0.1,
+		alpha = 0.3) +
+	geom_smooth(aes(colour = "Regional trend"), method = "gam",
+		formula = y ~ s(x, k = 30), se = FALSE, linewidth = 0.8) +
+	scale_colour_manual(values = c(`One ABS` = "#9ecae1",
+		`Regional trend` = "black"), name = "Cases",
+		guide = guide_legend(override.aes = list(alpha = 1, linewidth = 0.6))) +
+	ggnewscale::new_scale_colour() +
+	lines +
+	scale_y_sqrt() +
+	labs(x = NULL, y = "Cases per 100,000\n(square root scale)") +
+	theme(axis.text.x = element_blank())
+
+# Trips out of all ABS
+trips_plot = mobility |>
+	ggplot(aes(date, trips)) +
+	lines +
+	geom_line(linewidth = 0.7) +
+	geom_point(size = 0.8) +
+	labs(x = NULL, y = "Trips out of ABS\n(millions a day)")
+
+# Lowest week of trips, and the range of trips during the two later waves
+low = mobility[which.min(mobility$trips), ]
+waves = range(filter(mobility, date >= as.Date("2020-09-01"),
+	date < as.Date("2021-03-01"))$trips)
+
+# Cases above, trips below, on the same time axis, keys on the side
+incidence / trips_plot +
+	plot_layout(heights = c(2, 1), guides = "collect") +
+	plot_annotation(
+		title = "Catalunya: weekly cases by ABS, trips and restrictions",
+		caption = paste0("Outside the window: ",
+			paste(outside$text, collapse = "; "), "."))
+```
+
+Trips fell to `r sprintf("%.1f", low$trips)` million a day in the week of `r day(low$date)`, as cases fell under the
+first state of alarm. The autumn and winter waves came while trips stayed between `r sprintf("%.1f", waves[1])` and
+`r sprintf("%.1f", waves[2])` million a day: the volume of trips alone does not track the waves. The trip
+neighbourhoods test whether where people travel matters instead.
+
+```{r}
+#| label: frames
+# Weekly cases per 100,000, [week, ABS], in classes up to the highest week
+incidence_w = t(Y) / rep(popv, each = 58) * 1e5
+CASES_AT = c(0, 50, 100, 200, 400, 800, 13000)
+stopifnot(max(incidence_w) < max(CASES_AT))
+
+# One frame: the cases map, and the trips with the week marked
+frame = \(w) {
+	map = abs |>
+		mutate(cases = cut(incidence_w[w, ], CASES_AT, include.lowest = TRUE,
+			dig.lab = 5)) |>
+		ggplot() +
+		geom_sf(aes(fill = cases), colour = "white", linewidth = 0.05,
+			show.legend = TRUE) +
+		scale_fill_brewer(palette = "YlOrRd", drop = FALSE) +
+		labs(fill = "Cases per\n100,000") +
+		theme_void()
+	trips_week = mobility |>
+		ggplot(aes(date, trips)) +
+		geom_line(colour = "grey40") +
+		geom_vline(xintercept = dates[w]) +
+		geom_point(data = mobility[w, ], size = 2.5) +
+		labs(x = NULL, y = "Trips out of ABS\n(millions a day)")
+	map / trips_week +
+		plot_layout(heights = c(3, 1)) +
+		plot_annotation(title = paste("Catalunya, week of", day(dates[w])))
+}
+```
+
+```{r}
+#| label: fig-animation
+#| eval: !expr knitr::is_html_output()
+#| fig-cap: "Weekly cases per 100,000 by ABS, one frame per week. Below: trips out of all ABS, with the mapped week marked."
+#| fig-width: 8
+#| fig-height: 8.5
+#| fig-show: animate
+#| animation-hook: gifski
+#| interval: 0.4
+# One frame per week
+for (w in 1:58) print(frame(w))
+```
+
+```{r}
+#| label: fig-peak-week
+#| eval: !expr '!knitr::is_html_output()'
+#| fig-cap: "Weekly cases per 100,000 by ABS in the week cases peaked; the online version animates all weeks. Below: trips out of all ABS, with the week marked."
+#| fig-width: 8
+#| fig-height: 8.5
+# The week with most cases
+frame(which.max(colSums(Y)))
+```
+
+## Spatial clustering
+
+Before fitting, we check whether incidence clusters in space, which is what a neighbour component assumes.
+
+```{r}
+#| label: fig-lisa
+#| fig-cap: "Left: cumulative cases per 100,000 in each ABS against the mean of its neighbours. Grey lines mark the means. Middle and right: local Moran's I clusters (9,999 permutations, p < 0.05 after false discovery rate adjustment), with a zoom to the high-high cores."
+#| fig-width: 10
+#| fig-height: 4.5
+# Local Moran's I of cumulative incidence, row-standardised adjacency weights,
+# 9,999 permutations, false discovery rate 5% (Pebesma and Bivand 2023, ch. 15)
+cum = rowSums(Y) / popv * 1e5
+lw = spdep::mat2listw((a > 0) * 1, style = "W")
+local = spdep::localmoran_perm(cum, lw, nsim = 9999, iseed = 1)
+cluster = spdep::hotspot(local, Prname = "Pr(z != E(Ii)) Sim", cutoff = 0.05,
+	p.adjust = "fdr", droplevels = FALSE)
+CLUSTER = c(`High-High` = "#b2182b", `Low-Low` = "#2166ac",
+	`High-Low` = "#f4a582", `Low-High` = "#92c5de")
+
+# Moran scatterplot: each ABS against the mean of its neighbours
+scatter = data.frame(cum = cum, lag = spdep::lag.listw(lw, cum),
+		cluster = cluster) |>
+	ggplot(aes(cum, lag, colour = cluster)) +
+	geom_vline(xintercept = mean(cum), colour = "grey60") +
+	geom_hline(yintercept = mean(cum), colour = "grey60") +
+	geom_point(size = 1.2) +
+	scale_colour_manual(values = CLUSTER, na.value = "grey75", guide = "none") +
+	labs(x = "Cases per 100,000 in the ABS",
+		y = "Mean of its neighbours")
+
+# Cluster map, for Catalunya and zoomed to the high-high cores
+cluster_map = \(zoom = NULL) abs |>
+	mutate(cluster = cluster) |>
+	ggplot() +
+	geom_sf(aes(fill = cluster), colour = "white", linewidth = 0.05,
+		show.legend = TRUE) +
+	coord_sf(xlim = zoom[c(1, 3)], ylim = zoom[c(2, 4)]) +
+	scale_fill_manual(values = CLUSTER, na.value = "grey90",
+		na.translate = TRUE, drop = FALSE,
+		labels = \(x) ifelse(is.na(x), "Not significant", x)) +
+	labs(fill = NULL) +
+	theme_void()
+high = abs[which(cluster == "High-High"), ] |>
+	st_buffer(3000) |>
+	st_bbox()
+scatter + cluster_map() + cluster_map(high) +
+	plot_layout(widths = c(1.2, 1, 0.7), guides = "collect") +
+	plot_annotation(title = "Catalunya: local clusters of cumulative cases",
+		subtitle = "Right: zoom to the high-high cores")
+```
+
+Cumulative incidence clusters between adjacent ABS: global Moran's I is
+`r sprintf("%.2f", spdep::moran.test(cum, lw)$estimate[[1]])`. Local Moran's I [@pebesma2023] finds
+`r sum(cluster == "High-High", na.rm = TRUE)` high-high and `r sum(cluster == "Low-Low", na.rm = TRUE)` low-low
+cores, ABS whose incidence and that of their neighbours are both above or both below the mean. The high-high cores
+are `r paste(abs$name[which(cluster == "High-High")], collapse = ", ")`. The low-low cores lie mostly along the
+southern coast, from the Penedès and the Garraf to the Ebre delta.
+
+# Neighbourhoods
+
+The three models differ only in the neighbour weights $w_{ji}$. The weights split the cases of each source ABS $j$
+across the ABS $i$ it is linked to, so the weights from each source sum to 1.
+
+| Version | How the weights fall | Question it answers |
+|---|---|---|
+| Boundaries | With the number of borders crossed, at an estimated rate | Does adjacency describe how cases spread between ABS? |
+| Trip orders | With the rank of each destination by trips, in rings of the same size as by boundaries, at an estimated rate | Are the ABS people travel to most better neighbours than the adjacent ones? |
+| Trip shares | In proportion to the share of trips to each destination, with no rate to estimate | Does the volume of trips describe spread between ABS without a distance rule? |
+
+- **Boundaries**: ABS that touch at a single point count as sharing a border (queen adjacency).
+- **Trip orders**: each ABS's destinations are ranked by their mean daily trips over the whole period. The
+  destinations with most trips take order 1, the next take order 2, and so on, with as many ABS at each order as by
+  boundaries. Only which ABS count as close changes, which makes the comparison with boundaries a fair test of who
+  the neighbours are.
+- **Trip shares**: if 10% of the trips leaving ABS $j$ end in ABS $i$, then 10% of $j$'s neighbour weight goes to $i$.
+  Every ABS that receives trips from $j$ is a neighbour.
+
+::: {.content-visible when-format="html"}
+## Create neighbourhoods
+
+```{r}
+#| label: neighbourhoods
+# Boundary order, [from, to]
+geo = nbOrder((a > 0) * 1, maxlag = Inf)
+dimnames(geo) = list(ids, ids)
+
+# Number of ABS at each boundary order by origin, orders above 5 as 6
+size = geo |>
+	apply(1, \(o) tabulate(pmin(o[o > 0], 6), 6)) |>
+	t()
+stopifnot(rowSums(size) == n - 1)
+
+# Trip order, [from, to]
+mob = matrix(0L, n, n, dimnames = list(ids, ids))
+for (j in 1:n) {
+	rank = order(trips[j, -j], decreasing = TRUE)
+	mob[j, -j][rank] = rep(1:6, size[j, ])
+}
+stopifnot(rowSums(mob == 1) == rowSums(geo == 1))
+
+
+# Trip shares, [from, to], each row sums to 1
+share = trips / rowSums(trips)
+stopifnot(all.equal(unname(rowSums(share)), rep(1, n)))
+```
+:::
+
+## Overlap of boundary and trip orders
+
+```{r}
+#| label: overlap
+# Share of an ABS's boundary neighbours at order k that are trip neighbours
+same = \(j, k) {
+	g = geo[j, ] == k
+	if (any(g)) sum(g & mob[j, ] == k) / sum(g) else NA
+}
+overlap = sapply(1:5, \(k) mean(sapply(1:n, same, k = k), na.rm = TRUE))
+data.frame(Order = 1:5, `Same neighbours (%)` = round(100 * overlap),
+		check.names = FALSE) |>
+	knitr::kable()
+```
+
+```{r}
+#| label: fig-orders
+#| fig-cap: "Order-1 to order-3 neighbours of the largest and the smallest ABS, by boundaries and by trip orders. Darker: higher order."
+#| fig-height: 9
+# Orders 1 to 3 around the largest and the smallest ABS
+pick = c(`Largest ABS` = ids[which.max(popv)],
+	`Smallest ABS` = ids[which.min(popv)])
+ring = \(o, j) factor(ifelse(ids == j, "Origin", ifelse(o <= 3, o, NA)),
+	names(ORDER))
+
+# One row per origin: orders by boundaries and by trips, zoomed alike
+map_orders = \(label, j) {
+	x = bind_rows(
+		mutate(abs, by = "By boundaries", order = ring(geo[j, ], j)),
+		mutate(abs, by = "By trip orders", order = ring(mob[j, ], j)))
+	zoom = x |>
+		filter(!is.na(order)) |>
+		st_bbox()
+	ggplot(x) +
+		geom_sf(aes(fill = order), colour = "white", linewidth = 0.1) +
+		geom_sf_text(data = filter(x, order %in% 1:3),
+			aes(label = order, colour = order == 3), size = 2.5,
+			check_overlap = TRUE) +
+		facet_wrap(~by) +
+		coord_sf(datum = st_crs(4326), xlim = zoom[c(1, 3)],
+			ylim = zoom[c(2, 4)]) +
+		scale_x_continuous(n.breaks = 3) +
+		scale_fill_manual(values = ORDER, na.value = "grey92",
+			na.translate = FALSE, drop = FALSE) +
+		scale_colour_manual(values = c(`TRUE` = "white", `FALSE` = "black"),
+			guide = "none") +
+		labs(subtitle = paste0(label, ": ", abs$name[abs$id == j]),
+			x = NULL, y = NULL, fill = "Order")
+}
+Map(map_orders, names(pick), pick) |>
+	wrap_plots(ncol = 1, guides = "collect") +
+	plot_annotation(title = "Catalunya: neighbour orders 1 to 3")
+```
+
+# Model
+
+The model for the cases $Y_{it}$ in ABS $i$ in week $t$:
+
+$$
+\begin{aligned}
+Y_{it} \mid Y_{\cdot,\,t-1} &\sim \operatorname{NegBin}(\mu_{it},\ \psi), \quad \operatorname{Var} = \mu_{it}(1 + \psi\,\mu_{it}) \\[4pt]
+\mu_{it} &= \underbrace{e_i\,\nu_t}_{\text{endemic}}
+	+ \underbrace{\lambda\,Y_{i,t-1}}_{\text{autoregressive}}
+	+ \underbrace{\phi_i \sum_{j \ne i} w_{ji}\,Y_{j,t-1}}_{\text{neighbour}} \\[4pt]
+e_i &= \text{population share of ABS } i \\[4pt]
+\log \nu_t &= \alpha_\nu + \beta \underbrace{t}_{0 \text{ in week 1}} \\[4pt]
+\log \phi_i &= \alpha_\phi + \tau \underbrace{\log N_i}_{N_i = \text{population of ABS } i \text{, centred}} \\[4pt]
+w_{ji} &= \frac{o_{ji}^{-d}}{\sum_{k:\, o_{jk} \le 5} o_{jk}^{-d}} \text{ for } \underbrace{o_{ji}}_{\text{order of } i \text{ from } j} \le 5,
+	\text{ and 0 beyond} \quad \text{(boundaries, trip orders)} \\[4pt]
+w_{ji} &= \frac{F_{ji}}{\sum_{k \ne j} F_{jk}}, \quad \underbrace{F_{ji}}_{\text{mean daily trips from } j \text{ to } i} \quad \text{(trip shares)}
+\end{aligned}
+$$
+
+The power-law weights follow @meyer2014. The parameters are estimated by maximum likelihood [@meyer2017]. The first
+week only provides the lagged cases, so the models are fitted to weeks 2 to 58.
+
+## Covariates
+
+Each model is also fitted with temperature and restrictions in the autoregressive and neighbour components:
+
+$$
+\log \lambda_{it} = \alpha_\lambda + \boldsymbol{\gamma}^\top \mathbf{x}_{it}, \qquad
+\log \phi_{it} = \alpha_\phi + \tau \log N_i + \boldsymbol{\delta}^\top \mathbf{x}_{it}
+$$
+
+The covariates $\mathbf{x}_{it}$ are weekly values:
+
+- **Temperature**: the mean daily temperature in the ABS, centred and per 5 °C.
+- **State of alarm**, **non-essential work suspended** and **bars and restaurants closed**: the share of days in the
+  week with the measure in force.
+
+The curfew is left out: in Catalunya it ran on the same days as the second state of alarm. The effects
+$e^{\gamma}$ and $e^{\delta}$ are rate ratios. For temperature, they compare weeks 5 °C apart. For a restriction,
+they compare a week with the measure in force on all seven days with a week without it. They describe associations
+with the weekly cases, not the effect of a measure, and they act on the cases that follow from past cases, not on
+trips.
+
+::: {.content-visible when-format="html"}
+## Model fitting
+
+```{r}
+#| label: fit
+# Population matrix, [week, ABS]
+pop = matrix(popv, 58, n, byrow = TRUE, dimnames = list(NULL, ids))
+
+# One sts object for each neighbourhood
+make_sts = \(nb) sts(observed = t(Y), start = c(2020, 13), frequency = 52,
+	population = pop / sum(popv), neighbourhood = nb)
+sts_geo = make_sts(geo)
+sts_mob = make_sts(mob)
+
+# Shared model, with the neighbour weights set for each version
+model = list(
+	end = list(f = ~1 + t, offset = population(sts_geo)),
+	ar = list(f = ~1),
+	ne = list(f = ~1 + logpop, weights = W_powerlaw(maxlag = 5)),
+	family = "NegBin1",
+	data = list(logpop = log(pop) - mean(log(popv))),
+	subset = 2:58)
+shares_model = modifyList(model, list(ne = list(weights = share)))
+
+# Fit all three
+fits = list(
+	Boundaries = hhh4(sts_geo, model),
+	`Trip orders` = hhh4(sts_mob, model),
+	`Trip shares` = hhh4(sts_geo, shares_model))
+stopifnot(sapply(fits, \(f) f$convergence),
+	lengths(lapply(fits, coef)) == c(7, 7, 6))
+```
+
+```{r}
+#| label: covariates
+# Weekly covariates, [week, ABS]
+covariates = list(
+	temp = (weekly("temp_mean") - mean(weekly("temp_mean"))) / 5,
+	alarm = weekly("npi_alarm"),
+	work = weekly("npi_hibernation"),
+	bars = weekly("npi_hospitality"))
+stopifnot(all(sapply(covariates, dim) == c(58, n)))
+
+# Same three models with the covariates in both epidemic components
+with_covariates = \(m) modifyList(m, list(
+	ar = list(f = ~1 + temp + alarm + work + bars),
+	ne = list(f = ~1 + logpop + temp + alarm + work + bars),
+	data = c(m$data, covariates)))
+fits_cov = list(
+	Boundaries = hhh4(sts_geo, with_covariates(model)),
+	`Trip orders` = hhh4(sts_mob, with_covariates(model)),
+	`Trip shares` = hhh4(sts_geo, with_covariates(shares_model)))
+stopifnot(sapply(fits_cov, \(f) f$convergence))
+```
+:::
+
+# Results
+
+## Which neighbourhood fits best
+
+### In-sample fit
+
+The two power-law models have seven parameters and the trip-share model six.
+
+```{r}
+#| label: comparison
+# Compare
+cmp = fits |>
+	sapply(diagnostics) |>
+	t()
+best = names(fits)[which.min(cmp[, "AIC"])]
+
+# The conclusions below are written for boundaries fitting best
+stopifnot(best == "Boundaries")
+cmp |>
+	as.data.frame() |>
+	mutate(Model = rownames(cmp), .before = 1) |>
+	mutate(`AIC - best` = AIC - min(AIC), .after = AIC) |>
+	arrange(AIC) |>
+	knitr::kable(digits = c(0, 0, 0, 0, 2), row.names = FALSE)
+```
+
+### One-week-ahead forecasts
+
+Each of the last 20 weeks is forecast from a refit to the weeks before it [@meyer2014]. Lower scores are better.
+The permutation test compares each trip model's logarithmic scores with those of the boundary model.
+
+```{r}
+#| label: osa
+# Fit to week tp, predict week tp + 1, for the last 20 weeks
+osa = lapply(fits, oneStepAhead, tp = c(38, 57), type = "rolling",
+	which.start = "final", verbose = FALSE)
+sc = lapply(osa, scores, which = c("logs", "rps", "dss"), individual = TRUE,
+	reverse = FALSE)
+stopifnot(sapply(sc, \(s) dim(s)[1]) == 20)
+
+# Permutation tests of the logarithmic scores against boundaries
+p_logs = sapply(names(fits)[-1], \(k) permutationTest(sc[[k]][, , "logs"],
+	sc$Boundaries[, , "logs"], nPermutation = 999, verbose = FALSE)$pVal.permut)
+
+# Mean scores
+sc |>
+	sapply(\(s) colMeans(s, dims = 2)) |>
+	t() |>
+	as.data.frame() |>
+	mutate(p = c("", sprintf("%.3f", p_logs))) |>
+	knitr::kable(digits = 4, col.names = c("Logarithmic",
+		"Ranked probability", "Dawid-Sebastiani", "p (logarithmic)"))
+```
+
+```{r}
+#| label: fig-predictions
+#| fig-cap: "Weekly cases in Catalunya over the last 20 weeks: observed (points) and one-week-ahead forecast mean (line). Band: 95% interval for the count variation alone."
+#| fig-height: 7
+# Weekly cases in Catalunya: predicted mean and 95% interval from 2,000 draws
+set.seed(1)
+interval = \(o) {
+	draws = sapply(seq_len(nrow(o$pred)), \(w) colSums(matrix(rnbinom(n * 2000,
+		mu = o$pred[w, ], size = exp(o$psi[w, 1])), n)))
+	data.frame(date = dates[as.integer(rownames(o$pred))],
+		mean = rowSums(o$pred), lo = apply(draws, 2, quantile, 0.025),
+		hi = apply(draws, 2, quantile, 0.975), observed = rowSums(o$observed))
+}
+predictions = osa |>
+	lapply(interval) |>
+	bind_rows(.id = "model")
+
+# Lag of the boundary model's predictions around the observed peak
+lag = predictions |>
+	filter(model == "Boundaries") |>
+	mutate(after = date > date[which.max(observed)])
+peak_obs = lag[which.max(lag$observed), ]
+peak_pred = lag[which.max(lag$mean), ]
+lag_weeks = as.integer(peak_pred$date - peak_obs$date) / 7
+rise = filter(lag, date < peak_obs$date)
+fall = filter(lag, after)
+below = c(sum(rise$mean < rise$observed), nrow(rise))
+above = c(sum(fall$mean > fall$observed), nrow(fall))
+
+# Predicted against observed, one panel per model
+predictions |>
+	ggplot(aes(date)) +
+	geom_ribbon(aes(ymin = lo, ymax = hi, fill = model), alpha = 0.3) +
+	geom_line(aes(y = mean, colour = model)) +
+	geom_point(aes(y = observed, shape = "Observed cases"), size = 1.2) +
+	facet_wrap(~model, ncol = 1) +
+	scale_colour_manual(values = MODEL, aesthetics = c("colour", "fill"),
+		guide = "none") +
+	scale_shape_manual(values = 16) +
+	labs(title = "Catalunya: one-week-ahead forecasts of weekly cases",
+		x = NULL, y = "Cases a week", shape = NULL) +
+	theme(legend.position = "top")
+```
+
+All three models react to the turning point of the winter wave a week late. Cases peaked at
+`r format(round(peak_obs$observed), big.mark = ",")` in the week of `r day(peak_obs$date)`, and the boundary model's
+forecasts peaked `r lag_weeks` week`r if (lag_weeks != 1) "s"` later, at `r format(round(peak_pred$mean), big.mark = ",")`.
+The forecasts run below the observed cases in `r below[1]` of `r below[2]` weeks before the peak and above them in
+`r above[1]` of `r above[2]` weeks after it, as each week is forecast largely from the week before.
+
+As regional totals, the three forecasts are almost the same: the neighbourhood matters for where cases occur rather
+than for how many. The band leaves out parameter uncertainty and the correlation between ABS, so it is narrower
+than the full uncertainty.
+
+## Parameters and neighbour weights
+
+Estimates with 95% Wald intervals, computed on the log scale for the rates, the trend and ψ.
+
+```{r}
+#| label: parameters
+# Coefficients reported as exp(estimate)
+EXP = c("ar.1", "ne.1", "end.1", "end.t")
+LABEL = c(ar.1 = "Autoregressive rate λ",
+	ne.1 = "Neighbour rate φ, ABS of geometric-mean population, exp(α_φ)",
+	ne.logpop = "Population exponent τ",
+	end.1 = "Endemic cases a week, all ABS, week 1, exp(α_ν)",
+	end.t = "Endemic trend per week, exp(β)",
+	neweights.d = "Decay d",
+	overdisp = "Overdispersion ψ")
+
+# Estimate (95% interval) by coefficient name, and the dominant eigenvalue
+estimates = \(f) {
+	x = wald(f, EXP)
+	x = setNames(sprintf("%.3f (%.3f to %.3f)", x[, 1], x[, 2], x[, 3]),
+		rownames(x))
+	c(x[names(LABEL)], `Dominant eigenvalue` = sprintf("%.2f", getMaxEV(f)[1]))
+}
+table = sapply(fits, estimates)
+table[is.na(table)] = ""
+rownames(table) = c(LABEL, "Dominant eigenvalue")
+knitr::kable(table)
+```
+
+```{r}
+#| label: fig-decay
+#| fig-cap: "Fitted weight of every ABS pair by order. Each ABS's weights sum to 1. Trip shares are grouped by trip order."
+#| fig-height: 4
+# Decay of the two power-law models
+decay = fits[c("Boundaries", "Trip orders")] |>
+	sapply(\(f) coef(f, se = TRUE)["neweights.d", ]) |>
+	t()
+
+# Fitted weight of every ABS pair by order, trip shares by trip order
+weights = Map(\(f, o) data.frame(order = c(o), w = c(getNEweights(f))),
+		fits, list(geo, mob, mob)) |>
+	bind_rows(.id = "model") |>
+	filter(order > 0) |>
+	mutate(order = factor(pmin(order, 6), 1:6, c(1:5, "6+")))
+
+# Mean share of each ABS's outgoing weight on its order-1 neighbours
+w1 = Map(\(f, o) mean(rowSums(getNEweights(f) * (o == 1))), fits,
+	list(geo, mob, mob)) |>
+	unlist()
+
+# Weights by order, one box per model
+weights |>
+	ggplot(aes(order, w, fill = model)) +
+	geom_boxplot(outlier.size = 0.2, linewidth = 0.3) +
+	scale_fill_manual(values = MODEL, labels = c(sprintf("%s (d = %.2f)",
+		rownames(decay), decay[, 1]), "Trip shares (by trip order)")) +
+	labs(title = "Catalunya: fitted neighbour weights by order",
+		x = "Order", y = "Weight", fill = NULL) +
+	theme(legend.position = "inside", legend.position.inside = c(0.98, 0.95),
+		legend.justification.inside = c(1, 1))
+```
+
+On average, order-1 neighbours receive `r round(100 * w1[["Boundaries"]])`% of an ABS's neighbour weight by
+boundaries and `r round(100 * w1[["Trip orders"]])`% by trip orders. With trip shares, the same number of top
+destinations receive `r round(100 * w1[["Trip shares"]])`%. The neighbour component works mainly through the few ABS
+closest by each definition.
+
+## How the fitted cases split
+
+### Over time
+
+```{r}
+#| label: fig-time
+#| fig-cap: "Fitted weekly cases in Catalunya by component, with the observed cases and each component's share of all fitted cases."
+#| fig-height: 8
+# Share of all fitted cases by component
+cs = lapply(fits, components)
+shares = cs |>
+	sapply(\(m) 100 * sapply(m[names(COMPONENT)], sum) / sum(m$mean)) |>
+	t()
+
+# Observed cases and the share labels
+observed_total = data.frame(date = dates, cases = colSums(Y))
+share_label = data.frame(model = rownames(shares), date = dates[1],
+	label = sprintf(paste0("Share of fitted cases\nEndemic %.1f%%\n",
+		"Autoregressive %.1f%%\nNeighbour %.1f%%"),
+		shares[, "Endemic"], shares[, "Autoregressive"],
+		shares[, "Neighbour"]))
+
+# Fitted weekly cases by component, one panel per model
+cs |>
+	lapply(long) |>
+	bind_rows(.id = "model") |>
+	summarise(cases = sum(cases), .by = c(model, date, component)) |>
+	ggplot(aes(date, cases)) +
+	geom_area(aes(fill = component)) +
+	geom_point(data = observed_total, aes(shape = "Observed cases"),
+		size = 0.5) +
+	geom_text(data = share_label, aes(label = label), y = Inf, hjust = 0,
+		vjust = 1.2, size = 3, lineheight = 0.9) +
+	facet_wrap(~model, ncol = 1) +
+	scale_fill_manual(values = COMPONENT) +
+	scale_shape_manual(values = 16) +
+	labs(title = "Catalunya: fitted weekly cases by component",
+		x = NULL, y = "Cases a week", fill = NULL, shape = NULL) +
+	theme(legend.position = "top")
+```
+
+### Neighbour share across ABS
+
+```{r}
+#| label: fig-share
+#| fig-cap: "Share of each ABS's fitted cases from the neighbour component."
+#| fig-width: 10
+#| fig-height: 4.5
+# Neighbour share of each ABS's fitted cases, on shared classes
+neighbour_share = \(m) 100 * colSums(m$Neighbour) / colSums(m$mean)
+cs |>
+	lapply(\(m) mutate(abs, share = neighbour_share(m))) |>
+	bind_rows(.id = "model") |>
+	mutate(share = cut(share, c(0, 10, 20, 30, 40, 60, 100),
+		include.lowest = TRUE)) |>
+	ggplot() +
+	geom_sf(aes(fill = share), colour = "white", linewidth = 0.05) +
+	facet_wrap(~model) +
+	LONLAT +
+	scale_fill_brewer(palette = "Oranges", drop = FALSE) +
+	labs(title = "Catalunya: neighbour share of fitted cases by ABS",
+		fill = "Share (%)")
+```
+
+### The four ABS with most cases
+
+```{r}
+#| label: fig-top
+#| fig-cap: "Fitted weekly cases by component in the four ABS with most cases, one row per model, with the observed cases."
+#| fig-height: 9
+# Four ABS with most cases
+top = order(rowSums(Y), decreasing = TRUE)[1:4]
+observed_top = data.frame(date = rep(dates, 4),
+	abs = rep(abs$name[top], each = 58), cases = c(t(Y[top, ])))
+
+# Fitted components, one row per model
+cs |>
+	lapply(long, cols = top) |>
+	bind_rows(.id = "model") |>
+	ggplot(aes(date, cases)) +
+	geom_area(aes(fill = component)) +
+	geom_point(data = observed_top, aes(shape = "Observed cases"),
+		size = 0.3) +
+	facet_grid(model ~ abs) +
+	scale_x_date(date_breaks = "6 months", date_labels = "%b %y") +
+	scale_fill_manual(values = COMPONENT) +
+	scale_shape_manual(values = 16) +
+	labs(title = paste("Catalunya: fitted weekly cases in the four ABS",
+		"with most cases"),
+		x = NULL, y = "Cases a week", fill = NULL, shape = NULL) +
+	theme(legend.position = "top")
+```
+
+## Temperature and restrictions
+
+```{r}
+#| label: covariate-aic
+# AIC with and without covariates
+gain = sapply(fits, AIC) - sapply(fits_cov, AIC)
+best_cov = names(fits_cov)[which.min(sapply(fits_cov, AIC))]
+data.frame(Model = names(fits), `AIC without` = sapply(fits, AIC),
+		`AIC with covariates` = sapply(fits_cov, AIC), check.names = FALSE) |>
+	mutate(`AIC with - best` = `AIC with covariates` -
+		min(`AIC with covariates`)) |>
+	knitr::kable(digits = 0, row.names = FALSE)
+```
+
+
+```{r}
+#| label: covariate-effects
+# Rate ratios with 95% intervals, by component and model
+COVARIATE = c(temp = "Temperature (per 5 °C)", alarm = "State of alarm",
+	work = "Non-essential work suspended", bars = "Bars and restaurants closed")
+rows = paste0(rep(c("ar.", "ne."), each = 4), names(COVARIATE))
+rate_ratios = \(f) {
+	x = wald(f, rows)[rows, ]
+	setNames(sprintf("%.2f (%.2f to %.2f)", x[, 1], x[, 2], x[, 3]), rows)
+}
+# One association in words, for the boundary model
+say = \(r, rate) {
+	x = wald(fits_cov$Boundaries, rows)[r, ]
+	ci = sprintf("(%.2f, %.2f to %.2f)", x[1], x[2], x[3])
+	if (x[2] <= 1 && x[3] >= 1) paste(rate, "no clear change", ci)
+	else sprintf("%s %d%% %s %s", rate, round(100 * abs(1 - x[1])),
+		if (x[1] < 1) "lower" else "higher", ci)
+}
+fits_cov |>
+	sapply(\(f) rate_ratios(f)[rows]) |>
+	`rownames<-`(paste0(rep(c("Autoregressive λ: ", "Neighbour φ: "),
+		each = 4), COVARIATE)) |>
+	knitr::kable()
+```
+
+Rate ratios in the boundary model, with 95% intervals:
+
+- **Temperature, 5 °C warmer**: `r say("ar.temp", "λ")`, `r say("ne.temp", "φ")`.
+- **State of alarm**: `r say("ar.alarm", "λ")`, `r say("ne.alarm", "φ")`.
+- **Non-essential work suspended**: `r say("ar.work", "λ")`, `r say("ne.work", "φ")`.
+- **Bars and restaurants closed**: `r say("ar.bars", "λ")`, `r say("ne.bars", "φ")`.
+
+# Conclusions
+
+1. **`r best` fit best.** AIC is `r round(cmp["Trip orders", "AIC"] - cmp["Boundaries", "AIC"])` higher with trip
+   orders and `r round(cmp["Trip shares", "AIC"] - cmp["Boundaries", "AIC"])` higher with trip shares. The
+   one-week-ahead logarithmic score is `r sprintf("%.3f", mean(sc$Boundaries[, , "logs"]))` with boundaries,
+   against `r sprintf("%.3f", mean(sc[["Trip orders"]][, , "logs"]))` with trip orders (p =
+   `r sprintf("%.3f", p_logs[["Trip orders"]])`) and `r sprintf("%.3f", mean(sc[["Trip shares"]][, , "logs"]))`
+   with trip shares (p = `r sprintf("%.3f", p_logs[["Trip shares"]])`).
+2. **Boundary and trip orders overlap only partly.** On average, `r round(100 * overlap[1])`% of an ABS's order-1
+   neighbours are the same in both. This falls to `r round(100 * overlap[5])`% at order 5.
+3. **Neighbour weights fall steeply with order.** The decay d is
+   `r sprintf("%.2f", decay["Boundaries", 1])` with boundaries and `r sprintf("%.2f", decay["Trip orders", 1])` with
+   trip orders. At these values, an order-2 neighbour gets about `r round(100 * 2^-decay["Boundaries", 1])`% of the
+   weight of an order-1 neighbour.
+4. **The neighbour rate φ grows most with population with `r tolower(names(which.max(sapply(fits, \(f) coef(f)[["ne.logpop"]]))))`.**
+   The population exponent τ is
+   `r sprintf("%.2f", coef(fits$Boundaries)[["ne.logpop"]])` with boundaries,
+   `r sprintf("%.2f", coef(fits[["Trip orders"]])[["ne.logpop"]])` with trip orders and
+   `r sprintf("%.2f", coef(fits[["Trip shares"]])[["ne.logpop"]])` with trip shares.
+5. **The neighbour share depends on the neighbourhood.** It is `r round(shares["Boundaries", "Neighbour"], 1)`% with
+   boundaries, `r round(shares["Trip orders", "Neighbour"], 1)`% with trip orders and
+   `r round(shares["Trip shares", "Neighbour"], 1)`% with trip shares. Where it is lower, the autoregressive and
+   endemic components take a larger share.
+6. **Temperature and restrictions `r if (all(gain > 0)) "improve every model" else "do not improve every model"`.**
+   AIC falls by `r knitr::combine_words(format(round(gain), big.mark = ","), oxford_comma = FALSE)` for boundaries, trip orders and
+   trip shares. With
+   covariates, `r tolower(best_cov)` `r if (best_cov == best) "still fit best" else "fit best"`.
+
+# Next steps
+
+None of the models has a mobility term: trips enter only through the neighbourhood. The next step keeps neighbours
+by boundaries and adds trips as a fourth component, mobility. This separates cases linked to past cases in adjacent
+ABS from cases linked to past cases in ABS connected by travel [@slater2025]. `hhh4` has only three components, so
+we will compare two extensions:
+
+- **Mixed neighbour weights**: a single neighbour component whose weights combine boundaries and trips, with the
+  mixing proportion estimated from the data.
+- **A separate mobility component**: a fourth term with its own rate and weights from trips. `hhh4` cannot fit
+  such a term, so this option needs other software.
+
+Only the second gives mobility its own share of the fitted cases.
+
+# Session info
+
+```{r}
+#| label: session
+sessionInfo()
+```
+
+::: {.content-visible when-format="html"}
+# References
+
+::: {#refs}
+:::
+:::

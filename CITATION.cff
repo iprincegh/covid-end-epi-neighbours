@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "Neighbours by boundaries or by trips: endemic-epidemic models of COVID-19 in Catalunya"
+authors:
+  - family-names: "Oppong Boakye"
+    given-names: "Prince"
+date-released: 2026-11-23
+url: "https://iprincegh.github.io/covid-end-epi-neighbours/"
+repository-code: "https://github.com/iprincegh/covid-end-epi-neighbours"
