@@ -411,8 +411,8 @@ across the ABS $i$ it is linked to, so the weights from each source sum to 1.
 
 - **Boundaries**: ABS that touch at a single point count as sharing a border (queen adjacency).
 - **Trip orders**: each ABS's destinations are ranked by their mean daily trips over the whole period. The
-  destinations with most trips take order 1, the next take order 2, and so on, with as many ABS at each order as by
-  boundaries. Only which ABS count as close changes, which makes the comparison with boundaries a fair test of who
+  destinations with most trips take order 1, the next take order 2 and then order 3, with as many ABS at each order
+  as by boundaries. Only which ABS count as close changes, which makes the comparison with boundaries a fair test of who
   the neighbours are.
 - **Trip shares**: if 10% of the trips leaving ABS $j$ end in ABS $i$, then 10% of $j$'s neighbour weight goes to $i$.
   Every ABS that receives trips from $j$ is a neighbour.
@@ -426,9 +426,9 @@ across the ABS $i$ it is linked to, so the weights from each source sum to 1.
 geo = nbOrder((a > 0) * 1, maxlag = Inf)
 dimnames(geo) = list(ids, ids)
 
-# Number of ABS at each boundary order by origin, orders above 5 as 6
+# Number of ABS at each boundary order by origin, orders above 3 as 4
 size = geo |>
-	apply(1, \(o) tabulate(pmin(o[o > 0], 6), 6)) |>
+	apply(1, \(o) tabulate(pmin(o[o > 0], 4), 4)) |>
 	t()
 stopifnot(rowSums(size) == n - 1)
 
@@ -436,7 +436,7 @@ stopifnot(rowSums(size) == n - 1)
 mob = matrix(0L, n, n, dimnames = list(ids, ids))
 for (j in 1:n) {
 	rank = order(trips[j, -j], decreasing = TRUE)
-	mob[j, -j][rank] = rep(1:6, size[j, ])
+	mob[j, -j][rank] = rep(1:4, size[j, ])
 }
 stopifnot(rowSums(mob == 1) == rowSums(geo == 1))
 
@@ -447,6 +447,38 @@ stopifnot(all.equal(unname(rowSums(share)), rep(1, n)))
 ```
 :::
 
+## Stability of trip orders over time
+
+```{r}
+#| label: stability
+# Trip orders from each month's trips, against the whole-period orders
+trip_orders = \(x) {
+	diag(x) = 0
+	m = matrix(0L, n, n, dimnames = list(ids, ids))
+	for (j in 1:n) {
+		rank = order(x[j, -j], decreasing = TRUE)
+		m[j, -j][rank] = rep(1:4, size[j, ])
+	}
+	m
+}
+same_order = \(x, y, k) mean(sapply(1:n, \(j) {
+	g = x[j, ] == k
+	if (any(g)) mean(y[j, g] == k) else NA
+}), na.rm = TRUE)
+monthly = lapply(seq_along(od$months), \(m) trip_orders(od$trips[, , m]))
+stability = data.frame(Month = od$months,
+	Days = as.integer(table(format(d$dates, "%Y-%m"))[od$months]),
+	t(sapply(monthly, \(m) round(100 * sapply(1:3, same_order, x = mob,
+		y = m)))))
+names(stability)[3:5] = paste0("Order ", 1:3, " (%)")
+knitr::kable(stability)
+```
+
+The share of an ABS's neighbours at each order that are the same in a month's trips as over the whole period. An
+ABS's most-visited destinations hardly change: `r min(stability[stability$Days > 7, 3])`% to
+`r max(stability[stability$Days > 7, 3])`% of order-1 neighbours are the same in every full month, the lowest in the
+first lockdown. One ranking for the whole period is therefore a fair summary.
+
 ## Overlap of boundary and trip orders
 
 ```{r}
@@ -456,8 +488,8 @@ same = \(j, k) {
 	g = geo[j, ] == k
 	if (any(g)) sum(g & mob[j, ] == k) / sum(g) else NA
 }
-overlap = sapply(1:5, \(k) mean(sapply(1:n, same, k = k), na.rm = TRUE))
-data.frame(Order = 1:5, `Same neighbours (%)` = round(100 * overlap),
+overlap = sapply(1:3, \(k) mean(sapply(1:n, same, k = k), na.rm = TRUE))
+data.frame(Order = 1:3, `Same neighbours (%)` = round(100 * overlap),
 		check.names = FALSE) |>
 	knitr::kable()
 ```
@@ -514,13 +546,14 @@ Y_{it} \mid Y_{\cdot,\,t-1} &\sim \operatorname{NegBin}(\mu_{it},\ \psi), \quad 
 e_i &= \text{population share of ABS } i \\[4pt]
 \log \nu_t &= \alpha_\nu + \beta \underbrace{t}_{0 \text{ in week 1}} \\[4pt]
 \log \phi_i &= \alpha_\phi + \tau \underbrace{\log N_i}_{N_i = \text{population of ABS } i \text{, centred}} \\[4pt]
-w_{ji} &= \frac{o_{ji}^{-d}}{\sum_{k:\, o_{jk} \le 5} o_{jk}^{-d}} \text{ for } \underbrace{o_{ji}}_{\text{order of } i \text{ from } j} \le 5,
+w_{ji} &= \frac{o_{ji}^{-d}}{\sum_{k:\, o_{jk} \le 3} o_{jk}^{-d}} \text{ for } \underbrace{o_{ji}}_{\text{order of } i \text{ from } j} \le 3,
 	\text{ and 0 beyond} \quad \text{(boundaries, trip orders)} \\[4pt]
 w_{ji} &= \frac{F_{ji}}{\sum_{k \ne j} F_{jk}}, \quad \underbrace{F_{ji}}_{\text{mean daily trips from } j \text{ to } i} \quad \text{(trip shares)}
 \end{aligned}
 $$
 
-The power-law weights follow @meyer2014. The parameters are estimated by maximum likelihood [@meyer2017]. The first
+The power-law weights follow @meyer2014, with neighbours up to order 3: beyond it, the weight of each ABS pair is
+small. The parameters are estimated by maximum likelihood [@meyer2017]. The first
 week only provides the lagged cases, so the models are fitted to weeks 2 to 58.
 
 ## Covariates
@@ -562,7 +595,7 @@ sts_mob = make_sts(mob)
 model = list(
 	end = list(f = ~1 + t, offset = population(sts_geo)),
 	ar = list(f = ~1),
-	ne = list(f = ~1 + logpop, weights = W_powerlaw(maxlag = 5)),
+	ne = list(f = ~1 + logpop, weights = W_powerlaw(maxlag = 3)),
 	family = "NegBin1",
 	data = list(logpop = log(pop) - mean(log(popv))),
 	subset = 2:58)
@@ -751,7 +784,7 @@ weights = Map(\(f, o) data.frame(order = c(o), w = c(getNEweights(f))),
 		fits, list(geo, mob, mob)) |>
 	bind_rows(.id = "model") |>
 	filter(order > 0) |>
-	mutate(order = factor(pmin(order, 6), 1:6, c(1:5, "6+")))
+	mutate(order = factor(pmin(order, 4), 1:4, c(1:3, "4+")))
 
 # Mean share of each ABS's outgoing weight on its order-1 neighbours
 w1 = Map(\(f, o) mean(rowSums(getNEweights(f) * (o == 1))), fits,
@@ -924,11 +957,12 @@ Rate ratios in the boundary model, with 95% intervals:
    `r sprintf("%.3f", p_logs[["Trip orders"]])`) and `r sprintf("%.3f", mean(sc[["Trip shares"]][, , "logs"]))`
    with trip shares (p = `r sprintf("%.3f", p_logs[["Trip shares"]])`).
 2. **Boundary and trip orders overlap only partly.** On average, `r round(100 * overlap[1])`% of an ABS's order-1
-   neighbours are the same in both. This falls to `r round(100 * overlap[5])`% at order 5.
-3. **Neighbour weights fall steeply with order.** The decay d is
+   neighbours are the same in both. This falls to `r round(100 * overlap[3])`% at order 3.
+3. **Neighbour weights fall with order.** The decay d is
    `r sprintf("%.2f", decay["Boundaries", 1])` with boundaries and `r sprintf("%.2f", decay["Trip orders", 1])` with
-   trip orders. At these values, an order-2 neighbour gets about `r round(100 * 2^-decay["Boundaries", 1])`% of the
-   weight of an order-1 neighbour.
+   trip orders. At these values, an order-2 neighbour gets
+   `r round(100 * 2^-decay["Boundaries", 1])`% of the weight of an order-1 neighbour with boundaries and
+   `r round(100 * 2^-decay["Trip orders", 1])`% with trip orders.
 4. **The neighbour rate φ grows most with population with `r tolower(names(which.max(sapply(fits, \(f) coef(f)[["ne.logpop"]]))))`.**
    The population exponent τ is
    `r sprintf("%.2f", coef(fits$Boundaries)[["ne.logpop"]])` with boundaries,
