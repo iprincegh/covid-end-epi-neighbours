@@ -29,7 +29,8 @@ weights on shared borders. People often travel beyond adjacent areas, so trips m
 better. We test this on weekly cases in Catalunya's 374 ABS from 22 March 2020 to 1 May 2021, with neighbours
 defined by shared boundaries, by trip orders or by trip shares. We compare the three by in-sample fit, one-week-ahead
 forecasts and how the fitted cases split across the components, and check whether the ranking holds with
-temperature and restrictions.
+temperature and restrictions. We also check whether people's destinations changed with the restrictions, and how
+they differ between urban and rural ABS.
 
 The data combine five sources:
 
@@ -498,13 +499,13 @@ setting = cut(density, quantile(density, 0:3 / 3), include.lowest = TRUE,
 
 # Trip neighbours that are also boundary neighbours, and the trips they take
 order1_trips = sapply(1:n, \(j) sum(trips[j, mob[j, ] == 1]) / sum(trips[j, ]))
-data.frame(Setting = levels(setting),
+urban_rural = data.frame(Setting = levels(setting),
 		`People per km² (median)` = round(tapply(density, setting, median)),
 		`Order-1 trip neighbours also adjacent (%)` = sapply(levels(setting),
 			\(s) round(100 * same_order(mob, geo, 1, which(setting == s)))),
 		`Trips to order-1 trip neighbours (%)` = round(100 *
-			tapply(order1_trips, setting, mean)), check.names = FALSE) |>
-	knitr::kable(row.names = FALSE)
+			tapply(order1_trips, setting, mean)), check.names = FALSE)
+knitr::kable(urban_rural, row.names = FALSE)
 ```
 
 Boundaries and trips disagree most in urban ABS. Rural ABS send most of their trips to a few destinations, mostly
@@ -669,7 +670,8 @@ stopifnot(sapply(fits_cov, \(f) f$convergence))
 
 ### In-sample fit
 
-The two power-law models have seven parameters and the trip-share model six.
+AIC weighs how well a model fits against how many parameters it uses: lower is better, and a difference of more
+than about 10 is clear. The two power-law models have seven parameters and the trip-share model six.
 
 ```{r}
 #| label: comparison
@@ -1015,7 +1017,31 @@ Rate ratios in the boundary model, with 95% intervals:
 - **Non-essential work suspended**: `r say("ar.work", "λ")`, `r say("ne.work", "φ")`.
 - **Bars and restaurants closed**: `r say("ar.bars", "λ")`, `r say("ne.bars", "φ")`.
 
+The suspension of non-essential work lasted 11 days, inside the first state of alarm, so its estimates rest on two
+weeks and are uncertain.
+
 # Conclusions
+
+## In plain words
+
+- **Cases cluster.** Areas with many cases tend to sit next to other areas with many cases, so cases in one area
+  help predict cases in the areas around it.
+- **Shared borders work best.** Defining an area's neighbours by the areas it borders explains and forecasts the
+  weekly cases better than defining them by where its residents travel.
+- **Most new cases follow earlier cases in the same area.** In the boundary model, about
+  `r round(shares["Boundaries", "Autoregressive"])`% of the fitted cases are linked to past cases in the same area,
+  `r round(shares["Boundaries", "Neighbour"])`% to past cases in neighbouring areas and the rest to neither.
+- **Where people go hardly changed with the restrictions.** Even under lockdown, `r min(stability[[3]])`% to
+  `r max(stability[[3]])`% of each area's most-visited places stayed the same, so one travel network describes the
+  whole period.
+- **Cities differ.** City residents spread their trips over many places, not mainly next door, so the border and
+  travel definitions disagree most in cities.
+- **Restrictions and warm weather went with slower spread.** A week fully under a state of alarm had about
+  `r round(100 * (1 - wald(fits_cov$Boundaries, rows)["ar.alarm", 1]))`% fewer new cases per earlier case in the same
+  area, and a week 5 °C warmer about `r round(100 * (1 - wald(fits_cov$Boundaries, rows)["ar.temp", 1]))`% fewer.
+  These are associations, not measured effects of the measures.
+
+## In detail
 
 1. **`r best` fit best.** AIC is `r round(cmp["Trip orders", "AIC"] - cmp["Boundaries", "AIC"])` higher with trip
    orders and `r round(cmp["Trip shares", "AIC"] - cmp["Boundaries", "AIC"])` higher with trip shares. The
@@ -1043,6 +1069,12 @@ Rate ratios in the boundary model, with 95% intervals:
    AIC falls by `r knitr::combine_words(format(round(gain), big.mark = ","), oxford_comma = FALSE)` for boundaries, trip orders and
    trip shares. With
    covariates, `r tolower(best_cov)` `r if (best_cov == best) "still fit best" else "fit best"`.
+7. **Trip neighbours hardly change across restriction phases.** `r min(stability[[3]])`% to
+   `r max(stability[[3]])`% of order-1 trip neighbours stay the same in every phase, and weights that switch with the
+   phase fit worse than one matrix.
+8. **Boundaries and trips disagree most in urban ABS.** `r urban_rural[3, 3]`% of an urban ABS's order-1 trip
+   neighbours are adjacent, against `r urban_rural[1, 3]`% of a rural ABS's, and they take `r urban_rural[3, 4]`% of
+   its trips, against `r urban_rural[1, 4]`%.
 
 # Next steps
 

@@ -2432,7 +2432,11 @@ window.Quarto = {
   </ul></li>
   <li><a href="#temperature-and-restrictions" id="toc-temperature-and-restrictions" class="nav-link" data-scroll-target="#temperature-and-restrictions"><span class="header-section-number">5.4</span> Temperature and restrictions</a></li>
   </ul></li>
-  <li><a href="#conclusions" id="toc-conclusions" class="nav-link" data-scroll-target="#conclusions"><span class="header-section-number">6</span> Conclusions</a></li>
+  <li><a href="#conclusions" id="toc-conclusions" class="nav-link" data-scroll-target="#conclusions"><span class="header-section-number">6</span> Conclusions</a>
+  <ul class="collapse">
+  <li><a href="#in-plain-words" id="toc-in-plain-words" class="nav-link" data-scroll-target="#in-plain-words"><span class="header-section-number">6.1</span> In plain words</a></li>
+  <li><a href="#in-detail" id="toc-in-detail" class="nav-link" data-scroll-target="#in-detail"><span class="header-section-number">6.2</span> In detail</a></li>
+  </ul></li>
   <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps"><span class="header-section-number">7</span> Next steps</a></li>
   <li><a href="#session-info" id="toc-session-info" class="nav-link" data-scroll-target="#session-info"><span class="header-section-number">8</span> Session info</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><span class="header-section-number">9</span> References</a></li>
@@ -2480,7 +2484,7 @@ window.Quarto = {
 <li><strong>Autoregressive</strong>: cases from past cases in the same ABS.</li>
 <li><strong>Neighbour</strong>: cases from past cases in other ABS.</li>
 </ul>
-<p>The neighbour component needs weights that define which ABS are linked and how closely. Standard models base these weights on shared borders. People often travel beyond adjacent areas, so trips may describe contact between ABS better. We test this on weekly cases in Catalunya’s 374 ABS from 22 March 2020 to 1 May 2021, with neighbours defined by shared boundaries, by trip orders or by trip shares. We compare the three by in-sample fit, one-week-ahead forecasts and how the fitted cases split across the components, and check whether the ranking holds with temperature and restrictions.</p>
+<p>The neighbour component needs weights that define which ABS are linked and how closely. Standard models base these weights on shared borders. People often travel beyond adjacent areas, so trips may describe contact between ABS better. We test this on weekly cases in Catalunya’s 374 ABS from 22 March 2020 to 1 May 2021, with neighbours defined by shared boundaries, by trip orders or by trip shares. We compare the three by in-sample fit, one-week-ahead forecasts and how the fitted cases split across the components, and check whether the ranking holds with temperature and restrictions. We also check whether people’s destinations changed with the restrictions, and how they differ between urban and rural ABS.</p>
 <p>The data combine five sources:</p>
 <ul>
 <li><strong>Cases</strong>: confirmed COVID-19 counts from BSC Flow-Maps <span class="citation" data-cites="poncedeleon2024data">(<a href="#ref-poncedeleon2024data" role="doc-biblioref">Ponce-de-Leon and Pontes 2024</a>)</span>, with two ABS taken from the official CatSalut series.</li>
@@ -3055,13 +3059,13 @@ Figure 3: Left: cumulative cases per 100,000 in each ABS against the mean of it
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Trip neighbours that are also boundary neighbours, and the trips they take</span></span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>order1_trips <span class="ot">=</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n, \(j) <span class="fu">sum</span>(trips[j, mob[j, ] <span class="sc">==</span> <span class="dv">1</span>]) <span class="sc">/</span> <span class="fu">sum</span>(trips[j, ]))</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">Setting =</span> <span class="fu">levels</span>(setting),</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>urban_rural <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">Setting =</span> <span class="fu">levels</span>(setting),</span>
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">People per km² (median)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">tapply</span>(density, setting, median)),</span>
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">Order-1 trip neighbours also adjacent (%)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sapply</span>(<span class="fu">levels</span>(setting),</span>
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>            \(s) <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">same_order</span>(mob, geo, <span class="dv">1</span>, <span class="fu">which</span>(setting <span class="sc">==</span> s)))),</span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">Trips to order-1 trip neighbours (%)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>            <span class="fu">tapply</span>(order1_trips, setting, mean)), <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>            <span class="fu">tapply</span>(order1_trips, setting, mean)), <span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(urban_rural, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3292,7 +3296,7 @@ w_{ji} &amp;= \frac{F_{ji}}{\sum_{k \ne j} F_{jk}}, \quad \underbrace{F_{ji}}_{\
 <h2 data-number="5.1" class="anchored" data-anchor-id="which-neighbourhood-fits-best"><span class="header-section-number">5.1</span> Which neighbourhood fits best</h2>
 <section id="in-sample-fit" class="level3" data-number="5.1.1">
 <h3 data-number="5.1.1" class="anchored" data-anchor-id="in-sample-fit"><span class="header-section-number">5.1.1</span> In-sample fit</h3>
-<p>The two power-law models have seven parameters and the trip-share model six.</p>
+<p>AIC weighs how well a model fits against how many parameters it uses: lower is better, and a difference of more than about 10 is clear. The two power-law models have seven parameters and the trip-share model six.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -3958,10 +3962,24 @@ Figure 9: Fitted weekly cases by component in the four ABS with most cases, one
 <li><strong>Non-essential work suspended</strong>: λ no clear change (0.85, 0.72 to 1.00), φ 40% higher (1.40, 1.07 to 1.84).</li>
 <li><strong>Bars and restaurants closed</strong>: λ no clear change (1.09, 0.98 to 1.20), φ no clear change (1.05, 0.84 to 1.31).</li>
 </ul>
+<p>The suspension of non-essential work lasted 11 days, inside the first state of alarm, so its estimates rest on two weeks and are uncertain.</p>
 </section>
 </section>
 <section id="conclusions" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> Conclusions</h1>
+<section id="in-plain-words" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="in-plain-words"><span class="header-section-number">6.1</span> In plain words</h2>
+<ul>
+<li><strong>Cases cluster.</strong> Areas with many cases tend to sit next to other areas with many cases, so cases in one area help predict cases in the areas around it.</li>
+<li><strong>Shared borders work best.</strong> Defining an area’s neighbours by the areas it borders explains and forecasts the weekly cases better than defining them by where its residents travel.</li>
+<li><strong>Most new cases follow earlier cases in the same area.</strong> In the boundary model, about 63% of the fitted cases are linked to past cases in the same area, 29% to past cases in neighbouring areas and the rest to neither.</li>
+<li><strong>Where people go hardly changed with the restrictions.</strong> Even under lockdown, 93% to 98% of each area’s most-visited places stayed the same, so one travel network describes the whole period.</li>
+<li><strong>Cities differ.</strong> City residents spread their trips over many places, not mainly next door, so the border and travel definitions disagree most in cities.</li>
+<li><strong>Restrictions and warm weather went with slower spread.</strong> A week fully under a state of alarm had about 46% fewer new cases per earlier case in the same area, and a week 5 °C warmer about 19% fewer. These are associations, not measured effects of the measures.</li>
+</ul>
+</section>
+<section id="in-detail" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="in-detail"><span class="header-section-number">6.2</span> In detail</h2>
 <ol type="1">
 <li><strong>Boundaries fit best.</strong> AIC is 350 higher with trip orders and 224 higher with trip shares. The one-week-ahead logarithmic score is 4.092 with boundaries, against 4.103 with trip orders (p = 0.001) and 4.099 with trip shares (p = 0.001).</li>
 <li><strong>Boundary and trip orders overlap only partly.</strong> On average, 66% of an ABS’s order-1 neighbours are the same in both. This falls to 39% at order 3.</li>
@@ -3969,7 +3987,10 @@ Figure 9: Fitted weekly cases by component in the four ABS with most cases, one
 <li><strong>The neighbour rate φ grows most with population with boundaries.</strong> The population exponent τ is 0.69 with boundaries, 0.30 with trip orders and 0.18 with trip shares.</li>
 <li><strong>The neighbour share depends on the neighbourhood.</strong> It is 28.6% with boundaries, 24.1% with trip orders and 27.6% with trip shares. Where it is lower, the autoregressive and endemic components take a larger share.</li>
 <li><strong>Temperature and restrictions improve every model.</strong> AIC falls by 2,071, 2,114 and 2,079 for boundaries, trip orders and trip shares. With covariates, boundaries still fit best.</li>
+<li><strong>Trip neighbours hardly change across restriction phases.</strong> 93% to 98% of order-1 trip neighbours stay the same in every phase, and weights that switch with the phase fit worse than one matrix.</li>
+<li><strong>Boundaries and trips disagree most in urban ABS.</strong> 57% of an urban ABS’s order-1 trip neighbours are adjacent, against 72% of a rural ABS’s, and they take 38% of its trips, against 66%.</li>
 </ol>
+</section>
 </section>
 <section id="next-steps" class="level1" data-number="7">
 <h1 data-number="7"><span class="header-section-number">7</span> Next steps</h1>
