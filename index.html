@@ -2406,8 +2406,9 @@ window.Quarto = {
   <li><a href="#neighbourhoods" id="toc-neighbourhoods" class="nav-link" data-scroll-target="#neighbourhoods"><span class="header-section-number">3</span> Neighbourhoods</a>
   <ul class="collapse">
   <li><a href="#create-neighbourhoods" id="toc-create-neighbourhoods" class="nav-link" data-scroll-target="#create-neighbourhoods"><span class="header-section-number">3.1</span> Create neighbourhoods</a></li>
-  <li><a href="#stability-of-trip-orders-over-time" id="toc-stability-of-trip-orders-over-time" class="nav-link" data-scroll-target="#stability-of-trip-orders-over-time"><span class="header-section-number">3.2</span> Stability of trip orders over time</a></li>
-  <li><a href="#overlap-of-boundary-and-trip-orders" id="toc-overlap-of-boundary-and-trip-orders" class="nav-link" data-scroll-target="#overlap-of-boundary-and-trip-orders"><span class="header-section-number">3.3</span> Overlap of boundary and trip orders</a></li>
+  <li><a href="#stability-of-trip-orders-across-restriction-phases" id="toc-stability-of-trip-orders-across-restriction-phases" class="nav-link" data-scroll-target="#stability-of-trip-orders-across-restriction-phases"><span class="header-section-number">3.2</span> Stability of trip orders across restriction phases</a></li>
+  <li><a href="#urban-and-rural-abs" id="toc-urban-and-rural-abs" class="nav-link" data-scroll-target="#urban-and-rural-abs"><span class="header-section-number">3.3</span> Urban and rural ABS</a></li>
+  <li><a href="#overlap-of-boundary-and-trip-orders" id="toc-overlap-of-boundary-and-trip-orders" class="nav-link" data-scroll-target="#overlap-of-boundary-and-trip-orders"><span class="header-section-number">3.4</span> Overlap of boundary and trip orders</a></li>
   </ul></li>
   <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model"><span class="header-section-number">4</span> Model</a>
   <ul class="collapse">
@@ -2419,7 +2420,8 @@ window.Quarto = {
   <li><a href="#which-neighbourhood-fits-best" id="toc-which-neighbourhood-fits-best" class="nav-link" data-scroll-target="#which-neighbourhood-fits-best"><span class="header-section-number">5.1</span> Which neighbourhood fits best</a>
   <ul class="collapse">
   <li><a href="#in-sample-fit" id="toc-in-sample-fit" class="nav-link" data-scroll-target="#in-sample-fit"><span class="header-section-number">5.1.1</span> In-sample fit</a></li>
-  <li><a href="#one-week-ahead-forecasts" id="toc-one-week-ahead-forecasts" class="nav-link" data-scroll-target="#one-week-ahead-forecasts"><span class="header-section-number">5.1.2</span> One-week-ahead forecasts</a></li>
+  <li><a href="#trip-neighbours-by-restriction-phase" id="toc-trip-neighbours-by-restriction-phase" class="nav-link" data-scroll-target="#trip-neighbours-by-restriction-phase"><span class="header-section-number">5.1.2</span> Trip neighbours by restriction phase</a></li>
+  <li><a href="#one-week-ahead-forecasts" id="toc-one-week-ahead-forecasts" class="nav-link" data-scroll-target="#one-week-ahead-forecasts"><span class="header-section-number">5.1.3</span> One-week-ahead forecasts</a></li>
   </ul></li>
   <li><a href="#parameters-and-neighbour-weights" id="toc-parameters-and-neighbour-weights" class="nav-link" data-scroll-target="#parameters-and-neighbour-weights"><span class="header-section-number">5.2</span> Parameters and neighbour weights</a></li>
   <li><a href="#how-the-fitted-cases-split" id="toc-how-the-fitted-cases-split" class="nav-link" data-scroll-target="#how-the-fitted-cases-split"><span class="header-section-number">5.3</span> How the fitted cases split</a>
@@ -2597,7 +2599,7 @@ window.Quarto = {
 <span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Daily trips out of each ABS, temperature and restrictions, from the panel</span></span>
 <span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>panel <span class="ot">=</span> <span class="fu">spain</span>(<span class="st">&quot;outputs/catalunya/panel/cat_abs_main_noncollinear.parquet&quot;</span>) <span class="sc">|&gt;</span></span>
 <span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    arrow<span class="sc">::</span><span class="fu">read_parquet</span>(<span class="at">col_select =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;date&quot;</span>, <span class="st">&quot;trips_out&quot;</span>, <span class="st">&quot;temp_mean&quot;</span>,</span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;npi_alarm&quot;</span>, <span class="st">&quot;npi_hibernation&quot;</span>, <span class="st">&quot;npi_hospitality&quot;</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;npi_alarm&quot;</span>, <span class="st">&quot;npi_hibernation&quot;</span>, <span class="st">&quot;npi_curfew&quot;</span>, <span class="st">&quot;npi_hospitality&quot;</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(id <span class="sc">%in%</span> ids, date <span class="sc">&gt;=</span> <span class="fu">min</span>(d<span class="sc">$</span>dates), date <span class="sc">&lt;=</span> <span class="fu">max</span>(d<span class="sc">$</span>dates)) <span class="sc">|&gt;</span></span>
 <span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">week =</span> week[<span class="fu">match</span>(date, d<span class="sc">$</span>dates)])</span>
 <span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">nrow</span>(panel) <span class="sc">==</span> n <span class="sc">*</span> <span class="dv">406</span>, <span class="sc">!</span><span class="fu">anyNA</span>(panel))</span>
@@ -2917,38 +2919,73 @@ Figure 3: Left: cumulative cases per 100,000 in each ABS against the mean of it
 </details>
 </div>
 </section>
-<section id="stability-of-trip-orders-over-time" class="level2" data-number="3.2">
-<h2 data-number="3.2" class="anchored" data-anchor-id="stability-of-trip-orders-over-time"><span class="header-section-number">3.2</span> Stability of trip orders over time</h2>
+<section id="stability-of-trip-orders-across-restriction-phases" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="stability-of-trip-orders-across-restriction-phases"><span class="header-section-number">3.2</span> Stability of trip orders across restriction phases</h2>
+<p>The restrictions split the period into phases, runs of days with the same measures in force. Trip orders built from each phase’s trips show whether people’s destinations changed with the restrictions.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Trip orders from each month&#39;s trips, against the whole-period orders</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>trip_orders <span class="ot">=</span> \(x) {</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">diag</span>(x) <span class="ot">=</span> <span class="dv">0</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    m <span class="ot">=</span> <span class="fu">matrix</span>(<span class="dv">0</span>L, n, n, <span class="at">dimnames =</span> <span class="fu">list</span>(ids, ids))</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n) {</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        rank <span class="ot">=</span> <span class="fu">order</span>(x[j, <span class="sc">-</span>j], <span class="at">decreasing =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        m[j, <span class="sc">-</span>j][rank] <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, size[j, ])</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    m</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>same_order <span class="ot">=</span> \(x, y, k) <span class="fu">mean</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n, \(j) {</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    g <span class="ot">=</span> x[j, ] <span class="sc">==</span> k</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">any</span>(g)) <span class="fu">mean</span>(y[j, g] <span class="sc">==</span> k) <span class="cf">else</span> <span class="cn">NA</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>}), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>monthly <span class="ot">=</span> <span class="fu">lapply</span>(<span class="fu">seq_along</span>(od<span class="sc">$</span>months), \(m) <span class="fu">trip_orders</span>(od<span class="sc">$</span>trips[, , m]))</span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>stability <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">Month =</span> od<span class="sc">$</span>months,</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Days =</span> <span class="fu">as.integer</span>(<span class="fu">table</span>(<span class="fu">format</span>(d<span class="sc">$</span>dates, <span class="st">&quot;%Y-%m&quot;</span>))[od<span class="sc">$</span>months]),</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>(<span class="fu">sapply</span>(monthly, \(m) <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, same_order, <span class="at">x =</span> mob,</span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">y =</span> m)))))</span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(stability)[<span class="dv">3</span><span class="sc">:</span><span class="dv">5</span>] <span class="ot">=</span> <span class="fu">paste0</span>(<span class="st">&quot;Order &quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="st">&quot; (%)&quot;</span>)</span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(stability)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Restriction phase of each day: the measures in force, in words</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>MEASURE <span class="ot">=</span> <span class="fu">c</span>(<span class="at">npi_alarm =</span> <span class="st">&quot;state of alarm&quot;</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">npi_hibernation =</span> <span class="st">&quot;non-essential work suspended&quot;</span>, <span class="at">npi_curfew =</span> <span class="st">&quot;curfew&quot;</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">npi_hospitality =</span> <span class="st">&quot;bars and restaurants closed&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>days_npi <span class="ot">=</span> panel <span class="sc">|&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(id <span class="sc">==</span> ids[<span class="dv">1</span>]) <span class="sc">|&gt;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(date)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>in_force <span class="ot">=</span> <span class="fu">as.matrix</span>(days_npi[<span class="fu">names</span>(MEASURE)]) <span class="sc">==</span> <span class="dv">1</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>phase_name <span class="ot">=</span> <span class="fu">apply</span>(in_force, <span class="dv">1</span>, \(x) <span class="cf">if</span> (<span class="fu">any</span>(x)) <span class="fu">paste</span>(MEASURE[x],</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">collapse =</span> <span class="st">&quot;, &quot;</span>) <span class="cf">else</span> <span class="st">&quot;no restriction&quot;</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>phases <span class="ot">=</span> <span class="fu">unique</span>(phase_name)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>phase <span class="ot">=</span> <span class="fu">match</span>(phase_name, phases)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Mean daily trips between ABS in each phase, [origin, destination, phase]</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>index <span class="ot">=</span> \(v) <span class="fu">setNames</span>(<span class="fu">data.frame</span>(ids, <span class="fu">seq_len</span>(n)), <span class="fu">c</span>(v, <span class="fu">paste0</span>(v, <span class="st">&quot;_i&quot;</span>)))</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>flows <span class="ot">=</span> <span class="fu">spain</span>(<span class="st">&quot;data/cat_od_bha_reprojected&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    arrow<span class="sc">::</span><span class="fu">open_dataset</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">inner_join</span>(<span class="fu">index</span>(<span class="st">&quot;source&quot;</span>), <span class="at">by =</span> <span class="st">&quot;source&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">inner_join</span>(<span class="fu">index</span>(<span class="st">&quot;target&quot;</span>), <span class="at">by =</span> <span class="st">&quot;target&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">inner_join</span>(<span class="fu">data.frame</span>(<span class="at">date =</span> d<span class="sc">$</span>dates, <span class="at">phase =</span> phase), <span class="at">by =</span> <span class="st">&quot;date&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(source_i, target_i, phase) <span class="sc">|&gt;</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">trips =</span> <span class="fu">sum</span>(trips)) <span class="sc">|&gt;</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">collect</span>()</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>trips_phase <span class="ot">=</span> <span class="fu">array</span>(<span class="dv">0</span>, <span class="fu">c</span>(n, n, <span class="fu">length</span>(phases)))</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>trips_phase[<span class="fu">cbind</span>(flows<span class="sc">$</span>source_i, flows<span class="sc">$</span>target_i, flows<span class="sc">$</span>phase)] <span class="ot">=</span> flows<span class="sc">$</span>trips</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>trips_phase <span class="ot">=</span> <span class="fu">sweep</span>(trips_phase, <span class="dv">3</span>, <span class="fu">tabulate</span>(phase), <span class="st">&quot;/&quot;</span>)</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Trip orders of each phase, and the share of neighbours they keep</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>trip_orders <span class="ot">=</span> \(x) {</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">diag</span>(x) <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>    m <span class="ot">=</span> <span class="fu">matrix</span>(<span class="dv">0</span>L, n, n, <span class="at">dimnames =</span> <span class="fu">list</span>(ids, ids))</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n) {</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>        rank <span class="ot">=</span> <span class="fu">order</span>(x[j, <span class="sc">-</span>j], <span class="at">decreasing =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>        m[j, <span class="sc">-</span>j][rank] <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, size[j, ])</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    m</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>same_order <span class="ot">=</span> \(x, y, k, <span class="at">rows =</span> <span class="dv">1</span><span class="sc">:</span>n) <span class="fu">mean</span>(<span class="fu">sapply</span>(rows, \(j) {</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>    g <span class="ot">=</span> x[j, ] <span class="sc">==</span> k</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">any</span>(g)) <span class="fu">mean</span>(y[j, g] <span class="sc">==</span> k) <span class="cf">else</span> <span class="cn">NA</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>}), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>phase_orders <span class="ot">=</span> <span class="fu">lapply</span>(<span class="fu">seq_along</span>(phases), \(p) <span class="fu">trip_orders</span>(trips_phase[, , p]))</span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>stability <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">Phase =</span> <span class="fu">sub</span>(<span class="st">&quot;^(.)&quot;</span>, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">U</span><span class="sc">\\</span><span class="st">1&quot;</span>, phases, <span class="at">perl =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">Days =</span> <span class="fu">tabulate</span>(phase),</span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>(<span class="fu">sapply</span>(phase_orders, \(m) <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, same_order, <span class="at">x =</span> mob,</span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>        <span class="at">y =</span> m)))))</span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(stability)[<span class="dv">3</span><span class="sc">:</span><span class="dv">5</span>] <span class="ot">=</span> <span class="fu">paste0</span>(<span class="st">&quot;Order &quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="st">&quot; (%)&quot;</span>)</span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(stability)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 55%">
+<col style="width: 5%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Month</th>
+<th style="text-align: left;">Phase</th>
 <th style="text-align: right;">Days</th>
 <th style="text-align: right;">Order 1 (%)</th>
 <th style="text-align: right;">Order 2 (%)</th>
@@ -2957,130 +2994,130 @@ Figure 3: Left: cumulative cases per 100,000 in each ABS against the mean of it
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">2020-03</td>
-<td style="text-align: right;">10</td>
-<td style="text-align: right;">94</td>
+<td style="text-align: left;">State of alarm</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">96</td>
+<td style="text-align: right;">93</td>
 <td style="text-align: right;">87</td>
-<td style="text-align: right;">75</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2020-04</td>
-<td style="text-align: right;">30</td>
-<td style="text-align: right;">94</td>
-<td style="text-align: right;">88</td>
-<td style="text-align: right;">78</td>
+<td style="text-align: left;">State of alarm, non-essential work suspended</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">87</td>
+<td style="text-align: right;">74</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">2020-05</td>
-<td style="text-align: right;">31</td>
+<td style="text-align: left;">No restriction</td>
+<td style="text-align: right;">117</td>
+<td style="text-align: right;">98</td>
 <td style="text-align: right;">96</td>
-<td style="text-align: right;">93</td>
-<td style="text-align: right;">85</td>
+<td style="text-align: right;">91</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2020-06</td>
-<td style="text-align: right;">30</td>
-<td style="text-align: right;">98</td>
+<td style="text-align: left;">Bars and restaurants closed</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">97</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">87</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">State of alarm, curfew, bars and restaurants closed</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">97</td>
 <td style="text-align: right;">95</td>
 <td style="text-align: right;">90</td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;">2020-07</td>
-<td style="text-align: right;">31</td>
-<td style="text-align: right;">98</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">88</td>
-</tr>
 <tr class="even">
-<td style="text-align: left;">2020-08</td>
-<td style="text-align: right;">31</td>
-<td style="text-align: right;">97</td>
-<td style="text-align: right;">93</td>
-<td style="text-align: right;">84</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2020-09</td>
-<td style="text-align: right;">30</td>
+<td style="text-align: left;">State of alarm, curfew</td>
+<td style="text-align: right;">160</td>
 <td style="text-align: right;">98</td>
 <td style="text-align: right;">96</td>
 <td style="text-align: right;">93</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2020-10</td>
-<td style="text-align: right;">31</td>
-<td style="text-align: right;">98</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">91</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2020-11</td>
-<td style="text-align: right;">30</td>
-<td style="text-align: right;">97</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">90</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2020-12</td>
-<td style="text-align: right;">31</td>
-<td style="text-align: right;">98</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">91</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2021-01</td>
-<td style="text-align: right;">31</td>
-<td style="text-align: right;">97</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">90</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2021-02</td>
-<td style="text-align: right;">28</td>
-<td style="text-align: right;">97</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">90</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2021-03</td>
-<td style="text-align: right;">31</td>
-<td style="text-align: right;">98</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">91</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2021-04</td>
-<td style="text-align: right;">30</td>
-<td style="text-align: right;">98</td>
-<td style="text-align: right;">95</td>
-<td style="text-align: right;">91</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2021-05</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">94</td>
-<td style="text-align: right;">88</td>
-<td style="text-align: right;">71</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The share of an ABS’s neighbours at each order that are the same in a month’s trips as over the whole period. An ABS’s most-visited destinations hardly change: 94% to 98% of order-1 neighbours are the same in every full month, the lowest in the first lockdown. One ranking for the whole period is therefore a fair summary.</p>
+<p>The table gives the share of an ABS’s neighbours at each order that are the same in a phase as over the whole period. An ABS’s most-visited destinations hardly change: 93% to 98% of order-1 neighbours stay the same in every phase, the lowest when non-essential work was suspended. One matrix for the whole period is therefore a fair summary, and weights that switch with the phase do not improve the fit (Section 5.1.2).</p>
 </section>
-<section id="overlap-of-boundary-and-trip-orders" class="level2" data-number="3.3">
-<h2 data-number="3.3" class="anchored" data-anchor-id="overlap-of-boundary-and-trip-orders"><span class="header-section-number">3.3</span> Overlap of boundary and trip orders</h2>
+<section id="urban-and-rural-abs" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="urban-and-rural-abs"><span class="header-section-number">3.3</span> Urban and rural ABS</h2>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Share of an ABS&#39;s boundary neighbours at order k that are trip neighbours</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>same <span class="ot">=</span> \(j, k) {</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    g <span class="ot">=</span> geo[j, ] <span class="sc">==</span> k</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">any</span>(g)) <span class="fu">sum</span>(g <span class="sc">&amp;</span> mob[j, ] <span class="sc">==</span> k) <span class="sc">/</span> <span class="fu">sum</span>(g) <span class="cf">else</span> <span class="cn">NA</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>overlap <span class="ot">=</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, \(k) <span class="fu">mean</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n, same, <span class="at">k =</span> k), <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">Order =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="st">`</span><span class="at">Same neighbours (%)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> overlap),</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Population density terciles</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>area <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="fu">spain</span>(<span class="st">&quot;outputs/catalunya/tables/cat_abs_areas.csv&quot;</span>),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">colClasses =</span> <span class="fu">c</span>(<span class="at">id =</span> <span class="st">&quot;character&quot;</span>))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>density <span class="ot">=</span> popv <span class="sc">/</span> area<span class="sc">$</span>area_km2[<span class="fu">match</span>(ids, area<span class="sc">$</span>id)]</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>setting <span class="ot">=</span> <span class="fu">cut</span>(density, <span class="fu">quantile</span>(density, <span class="dv">0</span><span class="sc">:</span><span class="dv">3</span> <span class="sc">/</span> <span class="dv">3</span>), <span class="at">include.lowest =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;Rural&quot;</span>, <span class="st">&quot;Middle&quot;</span>, <span class="st">&quot;Urban&quot;</span>))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Trip neighbours that are also boundary neighbours, and the trips they take</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>order1_trips <span class="ot">=</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n, \(j) <span class="fu">sum</span>(trips[j, mob[j, ] <span class="sc">==</span> <span class="dv">1</span>]) <span class="sc">/</span> <span class="fu">sum</span>(trips[j, ]))</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">Setting =</span> <span class="fu">levels</span>(setting),</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">People per km² (median)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">tapply</span>(density, setting, median)),</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">Order-1 trip neighbours also adjacent (%)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sapply</span>(<span class="fu">levels</span>(setting),</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>            \(s) <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">same_order</span>(mob, geo, <span class="dv">1</span>, <span class="fu">which</span>(setting <span class="sc">==</span> s)))),</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">Trips to order-1 trip neighbours (%)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>            <span class="fu">tapply</span>(order1_trips, setting, mean)), <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 7%">
+<col style="width: 21%">
+<col style="width: 37%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Setting</th>
+<th style="text-align: right;">People per km² (median)</th>
+<th style="text-align: right;">Order-1 trip neighbours also adjacent (%)</th>
+<th style="text-align: right;">Trips to order-1 trip neighbours (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Rural</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">66</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Middle</td>
+<td style="text-align: right;">1712</td>
+<td style="text-align: right;">71</td>
+<td style="text-align: right;">58</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Urban</td>
+<td style="text-align: right;">22574</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">38</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Boundaries and trips disagree most in urban ABS. Rural ABS send most of their trips to a few destinations, mostly adjacent ones. Urban ABS spread their trips over many destinations, and fewer of their closest trip neighbours share a border with them.</p>
+</section>
+<section id="overlap-of-boundary-and-trip-orders" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="overlap-of-boundary-and-trip-orders"><span class="header-section-number">3.4</span> Overlap of boundary and trip orders</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Share of an ABS&#39;s boundary neighbours at order k that are trip neighbours</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>same <span class="ot">=</span> \(j, k) {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    g <span class="ot">=</span> geo[j, ] <span class="sc">==</span> k</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">any</span>(g)) <span class="fu">sum</span>(g <span class="sc">&amp;</span> mob[j, ] <span class="sc">==</span> k) <span class="sc">/</span> <span class="fu">sum</span>(g) <span class="cf">else</span> <span class="cn">NA</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>overlap <span class="ot">=</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, \(k) <span class="fu">mean</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n, same, <span class="at">k =</span> k), <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">Order =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="st">`</span><span class="at">Same neighbours (%)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> overlap),</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3110,39 +3147,39 @@ Figure 3: Left: cumulative cases per 100,000 in each ABS against the mean of it
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Orders 1 to 3 around the largest and the smallest ABS</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pick <span class="ot">=</span> <span class="fu">c</span>(<span class="st">`</span><span class="at">Largest ABS</span><span class="st">`</span> <span class="ot">=</span> ids[<span class="fu">which.max</span>(popv)],</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Smallest ABS</span><span class="st">`</span> <span class="ot">=</span> ids[<span class="fu">which.min</span>(popv)])</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>ring <span class="ot">=</span> \(o, j) <span class="fu">factor</span>(<span class="fu">ifelse</span>(ids <span class="sc">==</span> j, <span class="st">&quot;Origin&quot;</span>, <span class="fu">ifelse</span>(o <span class="sc">&lt;=</span> <span class="dv">3</span>, o, <span class="cn">NA</span>)),</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(ORDER))</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># One row per origin: orders by boundaries and by trips, zoomed alike</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>map_orders <span class="ot">=</span> \(label, j) {</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">bind_rows</span>(</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(abs, <span class="at">by =</span> <span class="st">&quot;By boundaries&quot;</span>, <span class="at">order =</span> <span class="fu">ring</span>(geo[j, ], j)),</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(abs, <span class="at">by =</span> <span class="st">&quot;By trip orders&quot;</span>, <span class="at">order =</span> <span class="fu">ring</span>(mob[j, ], j)))</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    zoom <span class="ot">=</span> x <span class="sc">|&gt;</span></span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(order)) <span class="sc">|&gt;</span></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">st_bbox</span>()</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(x) <span class="sc">+</span></span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> order), <span class="at">colour =</span> <span class="st">&quot;white&quot;</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_sf_text</span>(<span class="at">data =</span> <span class="fu">filter</span>(x, order <span class="sc">%in%</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>            <span class="fu">aes</span>(<span class="at">label =</span> order, <span class="at">colour =</span> order <span class="sc">==</span> <span class="dv">3</span>), <span class="at">size =</span> <span class="fl">2.5</span>,</span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>            <span class="at">check_overlap =</span> <span class="cn">TRUE</span>) <span class="sc">+</span></span>
-<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">facet_wrap</span>(<span class="sc">~</span>by) <span class="sc">+</span></span>
-<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">coord_sf</span>(<span class="at">datum =</span> <span class="fu">st_crs</span>(<span class="dv">4326</span>), <span class="at">xlim =</span> zoom[<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>)],</span>
-<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>            <span class="at">ylim =</span> zoom[<span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>)]) <span class="sc">+</span></span>
-<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_x_continuous</span>(<span class="at">n.breaks =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
-<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> ORDER, <span class="at">na.value =</span> <span class="st">&quot;grey92&quot;</span>,</span>
-<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>            <span class="at">na.translate =</span> <span class="cn">FALSE</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">`</span><span class="at">TRUE</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;white&quot;</span>, <span class="st">`</span><span class="at">FALSE</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;black&quot;</span>),</span>
-<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>            <span class="at">guide =</span> <span class="st">&quot;none&quot;</span>) <span class="sc">+</span></span>
-<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="fu">paste0</span>(label, <span class="st">&quot;: &quot;</span>, abs<span class="sc">$</span>name[abs<span class="sc">$</span>id <span class="sc">==</span> j]),</span>
-<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>            <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">fill =</span> <span class="st">&quot;Order&quot;</span>)</span>
-<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="fu">Map</span>(map_orders, <span class="fu">names</span>(pick), pick) <span class="sc">|&gt;</span></span>
-<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">wrap_plots</span>(<span class="at">ncol =</span> <span class="dv">1</span>, <span class="at">guides =</span> <span class="st">&quot;collect&quot;</span>) <span class="sc">+</span></span>
-<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">plot_annotation</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: neighbour orders 1 to 3&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Orders 1 to 3 around the largest and the smallest ABS</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>pick <span class="ot">=</span> <span class="fu">c</span>(<span class="st">`</span><span class="at">Largest ABS</span><span class="st">`</span> <span class="ot">=</span> ids[<span class="fu">which.max</span>(popv)],</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Smallest ABS</span><span class="st">`</span> <span class="ot">=</span> ids[<span class="fu">which.min</span>(popv)])</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>ring <span class="ot">=</span> \(o, j) <span class="fu">factor</span>(<span class="fu">ifelse</span>(ids <span class="sc">==</span> j, <span class="st">&quot;Origin&quot;</span>, <span class="fu">ifelse</span>(o <span class="sc">&lt;=</span> <span class="dv">3</span>, o, <span class="cn">NA</span>)),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(ORDER))</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># One row per origin: orders by boundaries and by trips, zoomed alike</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>map_orders <span class="ot">=</span> \(label, j) {</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(abs, <span class="at">by =</span> <span class="st">&quot;By boundaries&quot;</span>, <span class="at">order =</span> <span class="fu">ring</span>(geo[j, ], j)),</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(abs, <span class="at">by =</span> <span class="st">&quot;By trip orders&quot;</span>, <span class="at">order =</span> <span class="fu">ring</span>(mob[j, ], j)))</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    zoom <span class="ot">=</span> x <span class="sc">|&gt;</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(order)) <span class="sc">|&gt;</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">st_bbox</span>()</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(x) <span class="sc">+</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> order), <span class="at">colour =</span> <span class="st">&quot;white&quot;</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_sf_text</span>(<span class="at">data =</span> <span class="fu">filter</span>(x, order <span class="sc">%in%</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>),</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>            <span class="fu">aes</span>(<span class="at">label =</span> order, <span class="at">colour =</span> order <span class="sc">==</span> <span class="dv">3</span>), <span class="at">size =</span> <span class="fl">2.5</span>,</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>            <span class="at">check_overlap =</span> <span class="cn">TRUE</span>) <span class="sc">+</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">facet_wrap</span>(<span class="sc">~</span>by) <span class="sc">+</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">coord_sf</span>(<span class="at">datum =</span> <span class="fu">st_crs</span>(<span class="dv">4326</span>), <span class="at">xlim =</span> zoom[<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>)],</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>            <span class="at">ylim =</span> zoom[<span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>)]) <span class="sc">+</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_x_continuous</span>(<span class="at">n.breaks =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> ORDER, <span class="at">na.value =</span> <span class="st">&quot;grey92&quot;</span>,</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>            <span class="at">na.translate =</span> <span class="cn">FALSE</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">`</span><span class="at">TRUE</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;white&quot;</span>, <span class="st">`</span><span class="at">FALSE</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;black&quot;</span>),</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>            <span class="at">guide =</span> <span class="st">&quot;none&quot;</span>) <span class="sc">+</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="fu">paste0</span>(label, <span class="st">&quot;: &quot;</span>, abs<span class="sc">$</span>name[abs<span class="sc">$</span>id <span class="sc">==</span> j]),</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>            <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">fill =</span> <span class="st">&quot;Order&quot;</span>)</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="fu">Map</span>(map_orders, <span class="fu">names</span>(pick), pick) <span class="sc">|&gt;</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">wrap_plots</span>(<span class="at">ncol =</span> <span class="dv">1</span>, <span class="at">guides =</span> <span class="st">&quot;collect&quot;</span>) <span class="sc">+</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">plot_annotation</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: neighbour orders 1 to 3&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-orders" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -3196,55 +3233,55 @@ w_{ji} &amp;= \frac{F_{ji}}{\sum_{k \ne j} F_{jk}}, \quad \underbrace{F_{ji}}_{\
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Population matrix, [week, ABS]</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">=</span> <span class="fu">matrix</span>(popv, <span class="dv">58</span>, n, <span class="at">byrow =</span> <span class="cn">TRUE</span>, <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="cn">NULL</span>, ids))</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># One sts object for each neighbourhood</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>make_sts <span class="ot">=</span> \(nb) <span class="fu">sts</span>(<span class="at">observed =</span> <span class="fu">t</span>(Y), <span class="at">start =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">13</span>), <span class="at">frequency =</span> <span class="dv">52</span>,</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">population =</span> pop <span class="sc">/</span> <span class="fu">sum</span>(popv), <span class="at">neighbourhood =</span> nb)</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>sts_geo <span class="ot">=</span> <span class="fu">make_sts</span>(geo)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>sts_mob <span class="ot">=</span> <span class="fu">make_sts</span>(mob)</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared model, with the neighbour weights set for each version</span></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>model <span class="ot">=</span> <span class="fu">list</span>(</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">end =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> t, <span class="at">offset =</span> <span class="fu">population</span>(sts_geo)),</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">ar =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span>),</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> logpop, <span class="at">weights =</span> <span class="fu">W_powerlaw</span>(<span class="at">maxlag =</span> <span class="dv">3</span>)),</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">&quot;NegBin1&quot;</span>,</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">list</span>(<span class="at">logpop =</span> <span class="fu">log</span>(pop) <span class="sc">-</span> <span class="fu">mean</span>(<span class="fu">log</span>(popv))),</span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">subset =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">58</span>)</span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>shares_model <span class="ot">=</span> <span class="fu">modifyList</span>(model, <span class="fu">list</span>(<span class="at">ne =</span> <span class="fu">list</span>(<span class="at">weights =</span> share)))</span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit all three</span></span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>fits <span class="ot">=</span> <span class="fu">list</span>(</span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">Boundaries =</span> <span class="fu">hhh4</span>(sts_geo, model),</span>
-<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip orders</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_mob, model),</span>
-<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip shares</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_geo, shares_model))</span>
-<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">sapply</span>(fits, \(f) f<span class="sc">$</span>convergence),</span>
-<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lengths</span>(<span class="fu">lapply</span>(fits, coef)) <span class="sc">==</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="dv">7</span>, <span class="dv">6</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Population matrix, [week, ABS]</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>pop <span class="ot">=</span> <span class="fu">matrix</span>(popv, <span class="dv">58</span>, n, <span class="at">byrow =</span> <span class="cn">TRUE</span>, <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="cn">NULL</span>, ids))</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># One sts object for each neighbourhood</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>make_sts <span class="ot">=</span> \(nb) <span class="fu">sts</span>(<span class="at">observed =</span> <span class="fu">t</span>(Y), <span class="at">start =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">13</span>), <span class="at">frequency =</span> <span class="dv">52</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">population =</span> pop <span class="sc">/</span> <span class="fu">sum</span>(popv), <span class="at">neighbourhood =</span> nb)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>sts_geo <span class="ot">=</span> <span class="fu">make_sts</span>(geo)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>sts_mob <span class="ot">=</span> <span class="fu">make_sts</span>(mob)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared model, with the neighbour weights set for each version</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>model <span class="ot">=</span> <span class="fu">list</span>(</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">end =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> t, <span class="at">offset =</span> <span class="fu">population</span>(sts_geo)),</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">ar =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span>),</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> logpop, <span class="at">weights =</span> <span class="fu">W_powerlaw</span>(<span class="at">maxlag =</span> <span class="dv">3</span>)),</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">&quot;NegBin1&quot;</span>,</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">list</span>(<span class="at">logpop =</span> <span class="fu">log</span>(pop) <span class="sc">-</span> <span class="fu">mean</span>(<span class="fu">log</span>(popv))),</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">subset =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">58</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>shares_model <span class="ot">=</span> <span class="fu">modifyList</span>(model, <span class="fu">list</span>(<span class="at">ne =</span> <span class="fu">list</span>(<span class="at">weights =</span> share)))</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit all three</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>fits <span class="ot">=</span> <span class="fu">list</span>(</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">Boundaries =</span> <span class="fu">hhh4</span>(sts_geo, model),</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip orders</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_mob, model),</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip shares</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_geo, shares_model))</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">sapply</span>(fits, \(f) f<span class="sc">$</span>convergence),</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lengths</span>(<span class="fu">lapply</span>(fits, coef)) <span class="sc">==</span> <span class="fu">c</span>(<span class="dv">7</span>, <span class="dv">7</span>, <span class="dv">6</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Weekly covariates, [week, ABS]</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>covariates <span class="ot">=</span> <span class="fu">list</span>(</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">temp =</span> (<span class="fu">weekly</span>(<span class="st">&quot;temp_mean&quot;</span>) <span class="sc">-</span> <span class="fu">mean</span>(<span class="fu">weekly</span>(<span class="st">&quot;temp_mean&quot;</span>))) <span class="sc">/</span> <span class="dv">5</span>,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">alarm =</span> <span class="fu">weekly</span>(<span class="st">&quot;npi_alarm&quot;</span>),</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">work =</span> <span class="fu">weekly</span>(<span class="st">&quot;npi_hibernation&quot;</span>),</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">bars =</span> <span class="fu">weekly</span>(<span class="st">&quot;npi_hospitality&quot;</span>))</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">all</span>(<span class="fu">sapply</span>(covariates, dim) <span class="sc">==</span> <span class="fu">c</span>(<span class="dv">58</span>, n)))</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Same three models with the covariates in both epidemic components</span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>with_covariates <span class="ot">=</span> \(m) <span class="fu">modifyList</span>(m, <span class="fu">list</span>(</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">ar =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> temp <span class="sc">+</span> alarm <span class="sc">+</span> work <span class="sc">+</span> bars),</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> logpop <span class="sc">+</span> temp <span class="sc">+</span> alarm <span class="sc">+</span> work <span class="sc">+</span> bars),</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">c</span>(m<span class="sc">$</span>data, covariates)))</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>fits_cov <span class="ot">=</span> <span class="fu">list</span>(</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Boundaries =</span> <span class="fu">hhh4</span>(sts_geo, <span class="fu">with_covariates</span>(model)),</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip orders</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_mob, <span class="fu">with_covariates</span>(model)),</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip shares</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_geo, <span class="fu">with_covariates</span>(shares_model)))</span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">sapply</span>(fits_cov, \(f) f<span class="sc">$</span>convergence))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Weekly covariates, [week, ABS]</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>covariates <span class="ot">=</span> <span class="fu">list</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">temp =</span> (<span class="fu">weekly</span>(<span class="st">&quot;temp_mean&quot;</span>) <span class="sc">-</span> <span class="fu">mean</span>(<span class="fu">weekly</span>(<span class="st">&quot;temp_mean&quot;</span>))) <span class="sc">/</span> <span class="dv">5</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">alarm =</span> <span class="fu">weekly</span>(<span class="st">&quot;npi_alarm&quot;</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">work =</span> <span class="fu">weekly</span>(<span class="st">&quot;npi_hibernation&quot;</span>),</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">bars =</span> <span class="fu">weekly</span>(<span class="st">&quot;npi_hospitality&quot;</span>))</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">all</span>(<span class="fu">sapply</span>(covariates, dim) <span class="sc">==</span> <span class="fu">c</span>(<span class="dv">58</span>, n)))</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Same three models with the covariates in both epidemic components</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>with_covariates <span class="ot">=</span> \(m) <span class="fu">modifyList</span>(m, <span class="fu">list</span>(</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">ar =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> temp <span class="sc">+</span> alarm <span class="sc">+</span> work <span class="sc">+</span> bars),</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne =</span> <span class="fu">list</span>(<span class="at">f =</span> <span class="sc">~</span><span class="dv">1</span> <span class="sc">+</span> logpop <span class="sc">+</span> temp <span class="sc">+</span> alarm <span class="sc">+</span> work <span class="sc">+</span> bars),</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">c</span>(m<span class="sc">$</span>data, covariates)))</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>fits_cov <span class="ot">=</span> <span class="fu">list</span>(</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Boundaries =</span> <span class="fu">hhh4</span>(sts_geo, <span class="fu">with_covariates</span>(model)),</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip orders</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_mob, <span class="fu">with_covariates</span>(model)),</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Trip shares</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">hhh4</span>(sts_geo, <span class="fu">with_covariates</span>(shares_model)))</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">sapply</span>(fits_cov, \(f) f<span class="sc">$</span>convergence))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -3259,20 +3296,20 @@ w_{ji} &amp;= \frac{F_{ji}}{\sum_{k \ne j} F_{jk}}, \quad \underbrace{F_{ji}}_{\
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>cmp <span class="ot">=</span> fits <span class="sc">|&gt;</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(diagnostics) <span class="sc">|&gt;</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>()</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>best <span class="ot">=</span> <span class="fu">names</span>(fits)[<span class="fu">which.min</span>(cmp[, <span class="st">&quot;AIC&quot;</span>])]</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co"># The conclusions below are written for boundaries fitting best</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(best <span class="sc">==</span> <span class="st">&quot;Boundaries&quot;</span>)</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>cmp <span class="sc">|&gt;</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Model =</span> <span class="fu">rownames</span>(cmp), <span class="at">.before =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="st">`</span><span class="at">AIC - best</span><span class="st">`</span> <span class="ot">=</span> AIC <span class="sc">-</span> <span class="fu">min</span>(AIC), <span class="at">.after =</span> AIC) <span class="sc">|&gt;</span></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(AIC) <span class="sc">|&gt;</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">2</span>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>cmp <span class="ot">=</span> fits <span class="sc">|&gt;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(diagnostics) <span class="sc">|&gt;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>()</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>best <span class="ot">=</span> <span class="fu">names</span>(fits)[<span class="fu">which.min</span>(cmp[, <span class="st">&quot;AIC&quot;</span>])]</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co"># The conclusions below are written for boundaries fitting best</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(best <span class="sc">==</span> <span class="st">&quot;Boundaries&quot;</span>)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>cmp <span class="sc">|&gt;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Model =</span> <span class="fu">rownames</span>(cmp), <span class="at">.before =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="st">`</span><span class="at">AIC - best</span><span class="st">`</span> <span class="ot">=</span> AIC <span class="sc">-</span> <span class="fu">min</span>(AIC), <span class="at">.after =</span> AIC) <span class="sc">|&gt;</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(AIC) <span class="sc">|&gt;</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">2</span>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3312,31 +3349,91 @@ w_{ji} &amp;= \frac{F_{ji}}{\sum_{k \ne j} F_{jk}}, \quad \underbrace{F_{ji}}_{\
 </div>
 </div>
 </section>
-<section id="one-week-ahead-forecasts" class="level3" data-number="5.1.2">
-<h3 data-number="5.1.2" class="anchored" data-anchor-id="one-week-ahead-forecasts"><span class="header-section-number">5.1.2</span> One-week-ahead forecasts</h3>
+<section id="trip-neighbours-by-restriction-phase" class="level3" data-number="5.1.2">
+<h3 data-number="5.1.2" class="anchored" data-anchor-id="trip-neighbours-by-restriction-phase"><span class="header-section-number">5.1.2</span> Trip neighbours by restriction phase</h3>
+<p>Weights that switch with the restriction phase of each week, against one matrix for the whole period. For trip orders, the decay is profiled over a grid and counted as one parameter.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Phase of each week: the phase of most of its days</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>week_phase <span class="ot">=</span> <span class="fu">sapply</span>(<span class="fu">split</span>(phase, week),</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    \(p) <span class="fu">as.integer</span>(<span class="fu">names</span>(<span class="fu">which.max</span>(<span class="fu">table</span>(p)))))</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>by_week <span class="ot">=</span> \(f) {</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">array</span>(<span class="dv">0</span>, <span class="fu">c</span>(n, n, <span class="dv">58</span>))</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (w <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">58</span>) x[, , w] <span class="ot">=</span> <span class="fu">f</span>(week_phase[w])</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    x</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>fit_weights <span class="ot">=</span> \(W) <span class="fu">hhh4</span>(sts_geo,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">modifyList</span>(model, <span class="fu">list</span>(<span class="at">ne =</span> <span class="fu">list</span>(<span class="at">weights =</span> W))))</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>row_norm <span class="ot">=</span> \(m) m <span class="sc">/</span> <span class="fu">rowSums</span>(m)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>powerlaw <span class="ot">=</span> \(o, dd) <span class="fu">row_norm</span>(<span class="fu">ifelse</span>(o <span class="sc">&gt;=</span> <span class="dv">1</span> <span class="sc">&amp;</span> o <span class="sc">&lt;=</span> <span class="dv">3</span>, <span class="fu">pmax</span>(o, <span class="dv">1</span>)<span class="sc">^-</span>dd, <span class="dv">0</span>))</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Trip shares by phase</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>shares_phase <span class="ot">=</span> <span class="fu">by_week</span>(\(p) <span class="fu">row_norm</span>(<span class="st">`</span><span class="at">diag&lt;-</span><span class="st">`</span>(trips_phase[, , p], <span class="dv">0</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fit_weights</span>()</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Trip orders by phase, decay profiled</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>grid <span class="ot">=</span> <span class="fu">seq</span>(<span class="fl">0.4</span>, <span class="dv">3</span>, <span class="at">by =</span> <span class="fl">0.1</span>)</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>profile <span class="ot">=</span> <span class="fu">sapply</span>(grid, \(dd) {</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    P <span class="ot">=</span> <span class="fu">lapply</span>(phase_orders, powerlaw, <span class="at">dd =</span> dd)</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.numeric</span>(<span class="fu">logLik</span>(<span class="fu">fit_weights</span>(<span class="fu">by_week</span>(\(p) P[[p]]))))</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">Neighbours =</span> <span class="fu">c</span>(<span class="st">&quot;Trip shares&quot;</span>, <span class="st">&quot;Trip orders&quot;</span>),</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">One matrix</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sapply</span>(fits[<span class="fu">c</span>(<span class="st">&quot;Trip shares&quot;</span>, <span class="st">&quot;Trip orders&quot;</span>)], AIC),</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">By phase</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">AIC</span>(shares_phase), <span class="sc">-</span><span class="dv">2</span> <span class="sc">*</span> <span class="fu">max</span>(profile) <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="dv">7</span>),</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>        <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">0</span>, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Neighbours</th>
+<th style="text-align: right;">One matrix</th>
+<th style="text-align: right;">By phase</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Trip shares</td>
+<td style="text-align: right;">158986</td>
+<td style="text-align: right;">159006</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Trip orders</td>
+<td style="text-align: right;">159112</td>
+<td style="text-align: right;">159140</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="one-week-ahead-forecasts" class="level3" data-number="5.1.3">
+<h3 data-number="5.1.3" class="anchored" data-anchor-id="one-week-ahead-forecasts"><span class="header-section-number">5.1.3</span> One-week-ahead forecasts</h3>
 <p>Each of the last 20 weeks is forecast from a refit to the weeks before it <span class="citation" data-cites="meyer2014">(<a href="#ref-meyer2014" role="doc-biblioref">Meyer and Held 2014</a>)</span>. Lower scores are better. The permutation test compares each trip model’s logarithmic scores with those of the boundary model.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit to week tp, predict week tp + 1, for the last 20 weeks</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>osa <span class="ot">=</span> <span class="fu">lapply</span>(fits, oneStepAhead, <span class="at">tp =</span> <span class="fu">c</span>(<span class="dv">38</span>, <span class="dv">57</span>), <span class="at">type =</span> <span class="st">&quot;rolling&quot;</span>,</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">which.start =</span> <span class="st">&quot;final&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>sc <span class="ot">=</span> <span class="fu">lapply</span>(osa, scores, <span class="at">which =</span> <span class="fu">c</span>(<span class="st">&quot;logs&quot;</span>, <span class="st">&quot;rps&quot;</span>, <span class="st">&quot;dss&quot;</span>), <span class="at">individual =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">reverse =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">sapply</span>(sc, \(s) <span class="fu">dim</span>(s)[<span class="dv">1</span>]) <span class="sc">==</span> <span class="dv">20</span>)</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Permutation tests of the logarithmic scores against boundaries</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>p_logs <span class="ot">=</span> <span class="fu">sapply</span>(<span class="fu">names</span>(fits)[<span class="sc">-</span><span class="dv">1</span>], \(k) <span class="fu">permutationTest</span>(sc[[k]][, , <span class="st">&quot;logs&quot;</span>],</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    sc<span class="sc">$</span>Boundaries[, , <span class="st">&quot;logs&quot;</span>], <span class="at">nPermutation =</span> <span class="dv">999</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>pVal.permut)</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Mean scores</span></span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>sc <span class="sc">|&gt;</span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(s) <span class="fu">colMeans</span>(s, <span class="at">dims =</span> <span class="dv">2</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>() <span class="sc">|&gt;</span></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span></span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">p =</span> <span class="fu">c</span>(<span class="st">&quot;&quot;</span>, <span class="fu">sprintf</span>(<span class="st">&quot;%.3f&quot;</span>, p_logs))) <span class="sc">|&gt;</span></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">4</span>, <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">&quot;Logarithmic&quot;</span>,</span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Ranked probability&quot;</span>, <span class="st">&quot;Dawid-Sebastiani&quot;</span>, <span class="st">&quot;p (logarithmic)&quot;</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit to week tp, predict week tp + 1, for the last 20 weeks</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>osa <span class="ot">=</span> <span class="fu">lapply</span>(fits, oneStepAhead, <span class="at">tp =</span> <span class="fu">c</span>(<span class="dv">38</span>, <span class="dv">57</span>), <span class="at">type =</span> <span class="st">&quot;rolling&quot;</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">which.start =</span> <span class="st">&quot;final&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>sc <span class="ot">=</span> <span class="fu">lapply</span>(osa, scores, <span class="at">which =</span> <span class="fu">c</span>(<span class="st">&quot;logs&quot;</span>, <span class="st">&quot;rps&quot;</span>, <span class="st">&quot;dss&quot;</span>), <span class="at">individual =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">reverse =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">sapply</span>(sc, \(s) <span class="fu">dim</span>(s)[<span class="dv">1</span>]) <span class="sc">==</span> <span class="dv">20</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Permutation tests of the logarithmic scores against boundaries</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>p_logs <span class="ot">=</span> <span class="fu">sapply</span>(<span class="fu">names</span>(fits)[<span class="sc">-</span><span class="dv">1</span>], \(k) <span class="fu">permutationTest</span>(sc[[k]][, , <span class="st">&quot;logs&quot;</span>],</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    sc<span class="sc">$</span>Boundaries[, , <span class="st">&quot;logs&quot;</span>], <span class="at">nPermutation =</span> <span class="dv">999</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>pVal.permut)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Mean scores</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>sc <span class="sc">|&gt;</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(s) <span class="fu">colMeans</span>(s, <span class="at">dims =</span> <span class="dv">2</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">p =</span> <span class="fu">c</span>(<span class="st">&quot;&quot;</span>, <span class="fu">sprintf</span>(<span class="st">&quot;%.3f&quot;</span>, p_logs))) <span class="sc">|&gt;</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">4</span>, <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">&quot;Logarithmic&quot;</span>,</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Ranked probability&quot;</span>, <span class="st">&quot;Dawid-Sebastiani&quot;</span>, <span class="st">&quot;p (logarithmic)&quot;</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3385,44 +3482,44 @@ w_{ji} &amp;= \frac{F_{ji}}{\sum_{k \ne j} F_{jk}}, \quad \underbrace{F_{ji}}_{\
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Weekly cases in Catalunya: predicted mean and 95% interval from 2,000 draws</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>interval <span class="ot">=</span> \(o) {</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    draws <span class="ot">=</span> <span class="fu">sapply</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(o<span class="sc">$</span>pred)), \(w) <span class="fu">colSums</span>(<span class="fu">matrix</span>(<span class="fu">rnbinom</span>(n <span class="sc">*</span> <span class="dv">2000</span>,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="at">mu =</span> o<span class="sc">$</span>pred[w, ], <span class="at">size =</span> <span class="fu">exp</span>(o<span class="sc">$</span>psi[w, <span class="dv">1</span>])), n)))</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(<span class="at">date =</span> dates[<span class="fu">as.integer</span>(<span class="fu">rownames</span>(o<span class="sc">$</span>pred))],</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">mean =</span> <span class="fu">rowSums</span>(o<span class="sc">$</span>pred), <span class="at">lo =</span> <span class="fu">apply</span>(draws, <span class="dv">2</span>, quantile, <span class="fl">0.025</span>),</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">hi =</span> <span class="fu">apply</span>(draws, <span class="dv">2</span>, quantile, <span class="fl">0.975</span>), <span class="at">observed =</span> <span class="fu">rowSums</span>(o<span class="sc">$</span>observed))</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>predictions <span class="ot">=</span> osa <span class="sc">|&gt;</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(interval) <span class="sc">|&gt;</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>)</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Lag of the boundary model&#39;s predictions around the observed peak</span></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>lag <span class="ot">=</span> predictions <span class="sc">|&gt;</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(model <span class="sc">==</span> <span class="st">&quot;Boundaries&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">after =</span> date <span class="sc">&gt;</span> date[<span class="fu">which.max</span>(observed)])</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>peak_obs <span class="ot">=</span> lag[<span class="fu">which.max</span>(lag<span class="sc">$</span>observed), ]</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>peak_pred <span class="ot">=</span> lag[<span class="fu">which.max</span>(lag<span class="sc">$</span>mean), ]</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>lag_weeks <span class="ot">=</span> <span class="fu">as.integer</span>(peak_pred<span class="sc">$</span>date <span class="sc">-</span> peak_obs<span class="sc">$</span>date) <span class="sc">/</span> <span class="dv">7</span></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>rise <span class="ot">=</span> <span class="fu">filter</span>(lag, date <span class="sc">&lt;</span> peak_obs<span class="sc">$</span>date)</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>fall <span class="ot">=</span> <span class="fu">filter</span>(lag, after)</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>below <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">sum</span>(rise<span class="sc">$</span>mean <span class="sc">&lt;</span> rise<span class="sc">$</span>observed), <span class="fu">nrow</span>(rise))</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>above <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">sum</span>(fall<span class="sc">$</span>mean <span class="sc">&gt;</span> fall<span class="sc">$</span>observed), <span class="fu">nrow</span>(fall))</span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Predicted against observed, one panel per model</span></span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>predictions <span class="sc">|&gt;</span></span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(date)) <span class="sc">+</span></span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lo, <span class="at">ymax =</span> hi, <span class="at">fill =</span> model), <span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> mean, <span class="at">colour =</span> model)) <span class="sc">+</span></span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y =</span> observed, <span class="at">shape =</span> <span class="st">&quot;Observed cases&quot;</span>), <span class="at">size =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
-<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>model, <span class="at">ncol =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> MODEL, <span class="at">aesthetics =</span> <span class="fu">c</span>(<span class="st">&quot;colour&quot;</span>, <span class="st">&quot;fill&quot;</span>),</span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>        <span class="at">guide =</span> <span class="st">&quot;none&quot;</span>) <span class="sc">+</span></span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="dv">16</span>) <span class="sc">+</span></span>
-<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: one-week-ahead forecasts of weekly cases&quot;</span>,</span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">&quot;Cases a week&quot;</span>, <span class="at">shape =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;top&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Weekly cases in Catalunya: predicted mean and 95% interval from 2,000 draws</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>interval <span class="ot">=</span> \(o) {</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    draws <span class="ot">=</span> <span class="fu">sapply</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(o<span class="sc">$</span>pred)), \(w) <span class="fu">colSums</span>(<span class="fu">matrix</span>(<span class="fu">rnbinom</span>(n <span class="sc">*</span> <span class="dv">2000</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        <span class="at">mu =</span> o<span class="sc">$</span>pred[w, ], <span class="at">size =</span> <span class="fu">exp</span>(o<span class="sc">$</span>psi[w, <span class="dv">1</span>])), n)))</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(<span class="at">date =</span> dates[<span class="fu">as.integer</span>(<span class="fu">rownames</span>(o<span class="sc">$</span>pred))],</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">mean =</span> <span class="fu">rowSums</span>(o<span class="sc">$</span>pred), <span class="at">lo =</span> <span class="fu">apply</span>(draws, <span class="dv">2</span>, quantile, <span class="fl">0.025</span>),</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        <span class="at">hi =</span> <span class="fu">apply</span>(draws, <span class="dv">2</span>, quantile, <span class="fl">0.975</span>), <span class="at">observed =</span> <span class="fu">rowSums</span>(o<span class="sc">$</span>observed))</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>predictions <span class="ot">=</span> osa <span class="sc">|&gt;</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(interval) <span class="sc">|&gt;</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Lag of the boundary model&#39;s predictions around the observed peak</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>lag <span class="ot">=</span> predictions <span class="sc">|&gt;</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(model <span class="sc">==</span> <span class="st">&quot;Boundaries&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">after =</span> date <span class="sc">&gt;</span> date[<span class="fu">which.max</span>(observed)])</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>peak_obs <span class="ot">=</span> lag[<span class="fu">which.max</span>(lag<span class="sc">$</span>observed), ]</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>peak_pred <span class="ot">=</span> lag[<span class="fu">which.max</span>(lag<span class="sc">$</span>mean), ]</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>lag_weeks <span class="ot">=</span> <span class="fu">as.integer</span>(peak_pred<span class="sc">$</span>date <span class="sc">-</span> peak_obs<span class="sc">$</span>date) <span class="sc">/</span> <span class="dv">7</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>rise <span class="ot">=</span> <span class="fu">filter</span>(lag, date <span class="sc">&lt;</span> peak_obs<span class="sc">$</span>date)</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>fall <span class="ot">=</span> <span class="fu">filter</span>(lag, after)</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>below <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">sum</span>(rise<span class="sc">$</span>mean <span class="sc">&lt;</span> rise<span class="sc">$</span>observed), <span class="fu">nrow</span>(rise))</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>above <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">sum</span>(fall<span class="sc">$</span>mean <span class="sc">&gt;</span> fall<span class="sc">$</span>observed), <span class="fu">nrow</span>(fall))</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Predicted against observed, one panel per model</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>predictions <span class="sc">|&gt;</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(date)) <span class="sc">+</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lo, <span class="at">ymax =</span> hi, <span class="at">fill =</span> model), <span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> mean, <span class="at">colour =</span> model)) <span class="sc">+</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y =</span> observed, <span class="at">shape =</span> <span class="st">&quot;Observed cases&quot;</span>), <span class="at">size =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>model, <span class="at">ncol =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> MODEL, <span class="at">aesthetics =</span> <span class="fu">c</span>(<span class="st">&quot;colour&quot;</span>, <span class="st">&quot;fill&quot;</span>),</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>        <span class="at">guide =</span> <span class="st">&quot;none&quot;</span>) <span class="sc">+</span></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="dv">16</span>) <span class="sc">+</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: one-week-ahead forecasts of weekly cases&quot;</span>,</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">&quot;Cases a week&quot;</span>, <span class="at">shape =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;top&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-predictions" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -3447,27 +3544,27 @@ Figure 5: Weekly cases in Catalunya over the last 20 weeks: observed (points) a
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coefficients reported as exp(estimate)</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>EXP <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;ar.1&quot;</span>, <span class="st">&quot;ne.1&quot;</span>, <span class="st">&quot;end.1&quot;</span>, <span class="st">&quot;end.t&quot;</span>)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>LABEL <span class="ot">=</span> <span class="fu">c</span>(<span class="at">ar.1 =</span> <span class="st">&quot;Autoregressive rate λ&quot;</span>,</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne.1 =</span> <span class="st">&quot;Neighbour rate φ, ABS of geometric-mean population, exp(α_φ)&quot;</span>,</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne.logpop =</span> <span class="st">&quot;Population exponent τ&quot;</span>,</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">end.1 =</span> <span class="st">&quot;Endemic cases a week, all ABS, week 1, exp(α_ν)&quot;</span>,</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">end.t =</span> <span class="st">&quot;Endemic trend per week, exp(β)&quot;</span>,</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">neweights.d =</span> <span class="st">&quot;Decay d&quot;</span>,</span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">overdisp =</span> <span class="st">&quot;Overdispersion ψ&quot;</span>)</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate (95% interval) by coefficient name, and the dominant eigenvalue</span></span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>estimates <span class="ot">=</span> \(f) {</span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">wald</span>(f, EXP)</span>
-<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">setNames</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%.3f (%.3f to %.3f)&quot;</span>, x[, <span class="dv">1</span>], x[, <span class="dv">2</span>], x[, <span class="dv">3</span>]),</span>
-<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames</span>(x))</span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(x[<span class="fu">names</span>(LABEL)], <span class="st">`</span><span class="at">Dominant eigenvalue</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sprintf</span>(<span class="st">&quot;%.2f&quot;</span>, <span class="fu">getMaxEV</span>(f)[<span class="dv">1</span>]))</span>
-<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>table <span class="ot">=</span> <span class="fu">sapply</span>(fits, estimates)</span>
-<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>table[<span class="fu">is.na</span>(table)] <span class="ot">=</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(table) <span class="ot">=</span> <span class="fu">c</span>(LABEL, <span class="st">&quot;Dominant eigenvalue&quot;</span>)</span>
-<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coefficients reported as exp(estimate)</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>EXP <span class="ot">=</span> <span class="fu">c</span>(<span class="st">&quot;ar.1&quot;</span>, <span class="st">&quot;ne.1&quot;</span>, <span class="st">&quot;end.1&quot;</span>, <span class="st">&quot;end.t&quot;</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>LABEL <span class="ot">=</span> <span class="fu">c</span>(<span class="at">ar.1 =</span> <span class="st">&quot;Autoregressive rate λ&quot;</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne.1 =</span> <span class="st">&quot;Neighbour rate φ, ABS of geometric-mean population, exp(α_φ)&quot;</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ne.logpop =</span> <span class="st">&quot;Population exponent τ&quot;</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">end.1 =</span> <span class="st">&quot;Endemic cases a week, all ABS, week 1, exp(α_ν)&quot;</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">end.t =</span> <span class="st">&quot;Endemic trend per week, exp(β)&quot;</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">neweights.d =</span> <span class="st">&quot;Decay d&quot;</span>,</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">overdisp =</span> <span class="st">&quot;Overdispersion ψ&quot;</span>)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate (95% interval) by coefficient name, and the dominant eigenvalue</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>estimates <span class="ot">=</span> \(f) {</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">wald</span>(f, EXP)</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">setNames</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%.3f (%.3f to %.3f)&quot;</span>, x[, <span class="dv">1</span>], x[, <span class="dv">2</span>], x[, <span class="dv">3</span>]),</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames</span>(x))</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(x[<span class="fu">names</span>(LABEL)], <span class="st">`</span><span class="at">Dominant eigenvalue</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sprintf</span>(<span class="st">&quot;%.2f&quot;</span>, <span class="fu">getMaxEV</span>(f)[<span class="dv">1</span>]))</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>table <span class="ot">=</span> <span class="fu">sapply</span>(fits, estimates)</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>table[<span class="fu">is.na</span>(table)] <span class="ot">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(table) <span class="ot">=</span> <span class="fu">c</span>(LABEL, <span class="st">&quot;Dominant eigenvalue&quot;</span>)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3541,33 +3638,33 @@ Figure 5: Weekly cases in Catalunya over the last 20 weeks: observed (points) a
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Decay of the two power-law models</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>decay <span class="ot">=</span> fits[<span class="fu">c</span>(<span class="st">&quot;Boundaries&quot;</span>, <span class="st">&quot;Trip orders&quot;</span>)] <span class="sc">|&gt;</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(f) <span class="fu">coef</span>(f, <span class="at">se =</span> <span class="cn">TRUE</span>)[<span class="st">&quot;neweights.d&quot;</span>, ]) <span class="sc">|&gt;</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>()</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Fitted weight of every ABS pair by order, trip shares by trip order</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>weights <span class="ot">=</span> <span class="fu">Map</span>(\(f, o) <span class="fu">data.frame</span>(<span class="at">order =</span> <span class="fu">c</span>(o), <span class="at">w =</span> <span class="fu">c</span>(<span class="fu">getNEweights</span>(f))),</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        fits, <span class="fu">list</span>(geo, mob, mob)) <span class="sc">|&gt;</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(order <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">order =</span> <span class="fu">factor</span>(<span class="fu">pmin</span>(order, <span class="dv">4</span>), <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="st">&quot;4+&quot;</span>)))</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Mean share of each ABS&#39;s outgoing weight on its order-1 neighbours</span></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>w1 <span class="ot">=</span> <span class="fu">Map</span>(\(f, o) <span class="fu">mean</span>(<span class="fu">rowSums</span>(<span class="fu">getNEweights</span>(f) <span class="sc">*</span> (o <span class="sc">==</span> <span class="dv">1</span>))), fits,</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(geo, mob, mob)) <span class="sc">|&gt;</span></span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">unlist</span>()</span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Weights by order, one box per model</span></span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>weights <span class="sc">|&gt;</span></span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(order, w, <span class="at">fill =</span> model)) <span class="sc">+</span></span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>(<span class="at">outlier.size =</span> <span class="fl">0.2</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> MODEL, <span class="at">labels =</span> <span class="fu">c</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s (d = %.2f)&quot;</span>,</span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames</span>(decay), decay[, <span class="dv">1</span>]), <span class="st">&quot;Trip shares (by trip order)&quot;</span>)) <span class="sc">+</span></span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: fitted neighbour weights by order&quot;</span>,</span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="st">&quot;Order&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Weight&quot;</span>, <span class="at">fill =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;inside&quot;</span>, <span class="at">legend.position.inside =</span> <span class="fu">c</span>(<span class="fl">0.98</span>, <span class="fl">0.95</span>),</span>
-<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.justification.inside =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Decay of the two power-law models</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>decay <span class="ot">=</span> fits[<span class="fu">c</span>(<span class="st">&quot;Boundaries&quot;</span>, <span class="st">&quot;Trip orders&quot;</span>)] <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(f) <span class="fu">coef</span>(f, <span class="at">se =</span> <span class="cn">TRUE</span>)[<span class="st">&quot;neweights.d&quot;</span>, ]) <span class="sc">|&gt;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>()</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Fitted weight of every ABS pair by order, trip shares by trip order</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>weights <span class="ot">=</span> <span class="fu">Map</span>(\(f, o) <span class="fu">data.frame</span>(<span class="at">order =</span> <span class="fu">c</span>(o), <span class="at">w =</span> <span class="fu">c</span>(<span class="fu">getNEweights</span>(f))),</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>        fits, <span class="fu">list</span>(geo, mob, mob)) <span class="sc">|&gt;</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(order <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">order =</span> <span class="fu">factor</span>(<span class="fu">pmin</span>(order, <span class="dv">4</span>), <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="st">&quot;4+&quot;</span>)))</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Mean share of each ABS&#39;s outgoing weight on its order-1 neighbours</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>w1 <span class="ot">=</span> <span class="fu">Map</span>(\(f, o) <span class="fu">mean</span>(<span class="fu">rowSums</span>(<span class="fu">getNEweights</span>(f) <span class="sc">*</span> (o <span class="sc">==</span> <span class="dv">1</span>))), fits,</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(geo, mob, mob)) <span class="sc">|&gt;</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">unlist</span>()</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Weights by order, one box per model</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>weights <span class="sc">|&gt;</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(order, w, <span class="at">fill =</span> model)) <span class="sc">+</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>(<span class="at">outlier.size =</span> <span class="fl">0.2</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> MODEL, <span class="at">labels =</span> <span class="fu">c</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s (d = %.2f)&quot;</span>,</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames</span>(decay), decay[, <span class="dv">1</span>]), <span class="st">&quot;Trip shares (by trip order)&quot;</span>)) <span class="sc">+</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: fitted neighbour weights by order&quot;</span>,</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="st">&quot;Order&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Weight&quot;</span>, <span class="at">fill =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;inside&quot;</span>, <span class="at">legend.position.inside =</span> <span class="fu">c</span>(<span class="fl">0.98</span>, <span class="fl">0.95</span>),</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.justification.inside =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-decay" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -3591,37 +3688,37 @@ Figure 6: Fitted weight of every ABS pair by order. Each ABS’s weights sum to
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Share of all fitted cases by component</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>cs <span class="ot">=</span> <span class="fu">lapply</span>(fits, components)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>shares <span class="ot">=</span> cs <span class="sc">|&gt;</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(m) <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sapply</span>(m[<span class="fu">names</span>(COMPONENT)], sum) <span class="sc">/</span> <span class="fu">sum</span>(m<span class="sc">$</span>mean)) <span class="sc">|&gt;</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>()</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Observed cases and the share labels</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>observed_total <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">date =</span> dates, <span class="at">cases =</span> <span class="fu">colSums</span>(Y))</span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>share_label <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">model =</span> <span class="fu">rownames</span>(shares), <span class="at">date =</span> dates[<span class="dv">1</span>],</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">label =</span> <span class="fu">sprintf</span>(<span class="fu">paste0</span>(<span class="st">&quot;Share of fitted cases</span><span class="sc">\n</span><span class="st">Endemic %.1f%%</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Autoregressive %.1f%%</span><span class="sc">\n</span><span class="st">Neighbour %.1f%%&quot;</span>),</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        shares[, <span class="st">&quot;Endemic&quot;</span>], shares[, <span class="st">&quot;Autoregressive&quot;</span>],</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>        shares[, <span class="st">&quot;Neighbour&quot;</span>]))</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Fitted weekly cases by component, one panel per model</span></span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>cs <span class="sc">|&gt;</span></span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(long) <span class="sc">|&gt;</span></span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">cases =</span> <span class="fu">sum</span>(cases), <span class="at">.by =</span> <span class="fu">c</span>(model, date, component)) <span class="sc">|&gt;</span></span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, cases)) <span class="sc">+</span></span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_area</span>(<span class="fu">aes</span>(<span class="at">fill =</span> component)) <span class="sc">+</span></span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">data =</span> observed_total, <span class="fu">aes</span>(<span class="at">shape =</span> <span class="st">&quot;Observed cases&quot;</span>),</span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">size =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="at">data =</span> share_label, <span class="fu">aes</span>(<span class="at">label =</span> label), <span class="at">y =</span> <span class="cn">Inf</span>, <span class="at">hjust =</span> <span class="dv">0</span>,</span>
-<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">vjust =</span> <span class="fl">1.2</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">lineheight =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
-<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>model, <span class="at">ncol =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> COMPONENT) <span class="sc">+</span></span>
-<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="dv">16</span>) <span class="sc">+</span></span>
-<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: fitted weekly cases by component&quot;</span>,</span>
-<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">&quot;Cases a week&quot;</span>, <span class="at">fill =</span> <span class="cn">NULL</span>, <span class="at">shape =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;top&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Share of all fitted cases by component</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>cs <span class="ot">=</span> <span class="fu">lapply</span>(fits, components)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>shares <span class="ot">=</span> cs <span class="sc">|&gt;</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(m) <span class="dv">100</span> <span class="sc">*</span> <span class="fu">sapply</span>(m[<span class="fu">names</span>(COMPONENT)], sum) <span class="sc">/</span> <span class="fu">sum</span>(m<span class="sc">$</span>mean)) <span class="sc">|&gt;</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>()</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Observed cases and the share labels</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>observed_total <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">date =</span> dates, <span class="at">cases =</span> <span class="fu">colSums</span>(Y))</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>share_label <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">model =</span> <span class="fu">rownames</span>(shares), <span class="at">date =</span> dates[<span class="dv">1</span>],</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">label =</span> <span class="fu">sprintf</span>(<span class="fu">paste0</span>(<span class="st">&quot;Share of fitted cases</span><span class="sc">\n</span><span class="st">Endemic %.1f%%</span><span class="sc">\n</span><span class="st">&quot;</span>,</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Autoregressive %.1f%%</span><span class="sc">\n</span><span class="st">Neighbour %.1f%%&quot;</span>),</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>        shares[, <span class="st">&quot;Endemic&quot;</span>], shares[, <span class="st">&quot;Autoregressive&quot;</span>],</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>        shares[, <span class="st">&quot;Neighbour&quot;</span>]))</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Fitted weekly cases by component, one panel per model</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>cs <span class="sc">|&gt;</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(long) <span class="sc">|&gt;</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">cases =</span> <span class="fu">sum</span>(cases), <span class="at">.by =</span> <span class="fu">c</span>(model, date, component)) <span class="sc">|&gt;</span></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, cases)) <span class="sc">+</span></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_area</span>(<span class="fu">aes</span>(<span class="at">fill =</span> component)) <span class="sc">+</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">data =</span> observed_total, <span class="fu">aes</span>(<span class="at">shape =</span> <span class="st">&quot;Observed cases&quot;</span>),</span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">size =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="at">data =</span> share_label, <span class="fu">aes</span>(<span class="at">label =</span> label), <span class="at">y =</span> <span class="cn">Inf</span>, <span class="at">hjust =</span> <span class="dv">0</span>,</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">vjust =</span> <span class="fl">1.2</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">lineheight =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>model, <span class="at">ncol =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> COMPONENT) <span class="sc">+</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="dv">16</span>) <span class="sc">+</span></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: fitted weekly cases by component&quot;</span>,</span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">&quot;Cases a week&quot;</span>, <span class="at">fill =</span> <span class="cn">NULL</span>, <span class="at">shape =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;top&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-time" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -3642,20 +3739,20 @@ Figure 7: Fitted weekly cases in Catalunya by component, with the observed case
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Neighbour share of each ABS&#39;s fitted cases, on shared classes</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>neighbour_share <span class="ot">=</span> \(m) <span class="dv">100</span> <span class="sc">*</span> <span class="fu">colSums</span>(m<span class="sc">$</span>Neighbour) <span class="sc">/</span> <span class="fu">colSums</span>(m<span class="sc">$</span>mean)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>cs <span class="sc">|&gt;</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(\(m) <span class="fu">mutate</span>(abs, <span class="at">share =</span> <span class="fu">neighbour_share</span>(m))) <span class="sc">|&gt;</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">share =</span> <span class="fu">cut</span>(share, <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">60</span>, <span class="dv">100</span>),</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">include.lowest =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>() <span class="sc">+</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> share), <span class="at">colour =</span> <span class="st">&quot;white&quot;</span>, <span class="at">linewidth =</span> <span class="fl">0.05</span>) <span class="sc">+</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>model) <span class="sc">+</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    LONLAT <span class="sc">+</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_brewer</span>(<span class="at">palette =</span> <span class="st">&quot;Oranges&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: neighbour share of fitted cases by ABS&quot;</span>,</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">fill =</span> <span class="st">&quot;Share (%)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Neighbour share of each ABS&#39;s fitted cases, on shared classes</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>neighbour_share <span class="ot">=</span> \(m) <span class="dv">100</span> <span class="sc">*</span> <span class="fu">colSums</span>(m<span class="sc">$</span>Neighbour) <span class="sc">/</span> <span class="fu">colSums</span>(m<span class="sc">$</span>mean)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>cs <span class="sc">|&gt;</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(\(m) <span class="fu">mutate</span>(abs, <span class="at">share =</span> <span class="fu">neighbour_share</span>(m))) <span class="sc">|&gt;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">share =</span> <span class="fu">cut</span>(share, <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">60</span>, <span class="dv">100</span>),</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">include.lowest =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> share), <span class="at">colour =</span> <span class="st">&quot;white&quot;</span>, <span class="at">linewidth =</span> <span class="fl">0.05</span>) <span class="sc">+</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>model) <span class="sc">+</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    LONLAT <span class="sc">+</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_brewer</span>(<span class="at">palette =</span> <span class="st">&quot;Oranges&quot;</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Catalunya: neighbour share of fitted cases by ABS&quot;</span>,</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">fill =</span> <span class="st">&quot;Share (%)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-share" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -3676,27 +3773,27 @@ Figure 8: Share of each ABS’s fitted cases from the neighbour component.
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Four ABS with most cases</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>top <span class="ot">=</span> <span class="fu">order</span>(<span class="fu">rowSums</span>(Y), <span class="at">decreasing =</span> <span class="cn">TRUE</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>]</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>observed_top <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">date =</span> <span class="fu">rep</span>(dates, <span class="dv">4</span>),</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs =</span> <span class="fu">rep</span>(abs<span class="sc">$</span>name[top], <span class="at">each =</span> <span class="dv">58</span>), <span class="at">cases =</span> <span class="fu">c</span>(<span class="fu">t</span>(Y[top, ])))</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Fitted components, one row per model</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>cs <span class="sc">|&gt;</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(long, <span class="at">cols =</span> top) <span class="sc">|&gt;</span></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, cases)) <span class="sc">+</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_area</span>(<span class="fu">aes</span>(<span class="at">fill =</span> component)) <span class="sc">+</span></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">data =</span> observed_top, <span class="fu">aes</span>(<span class="at">shape =</span> <span class="st">&quot;Observed cases&quot;</span>),</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">size =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_grid</span>(model <span class="sc">~</span> abs) <span class="sc">+</span></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_date</span>(<span class="at">date_breaks =</span> <span class="st">&quot;6 months&quot;</span>, <span class="at">date_labels =</span> <span class="st">&quot;%b %y&quot;</span>) <span class="sc">+</span></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> COMPONENT) <span class="sc">+</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="dv">16</span>) <span class="sc">+</span></span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste</span>(<span class="st">&quot;Catalunya: fitted weekly cases in the four ABS&quot;</span>,</span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;with most cases&quot;</span>),</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">&quot;Cases a week&quot;</span>, <span class="at">fill =</span> <span class="cn">NULL</span>, <span class="at">shape =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;top&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Four ABS with most cases</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>top <span class="ot">=</span> <span class="fu">order</span>(<span class="fu">rowSums</span>(Y), <span class="at">decreasing =</span> <span class="cn">TRUE</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>]</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>observed_top <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">date =</span> <span class="fu">rep</span>(dates, <span class="dv">4</span>),</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs =</span> <span class="fu">rep</span>(abs<span class="sc">$</span>name[top], <span class="at">each =</span> <span class="dv">58</span>), <span class="at">cases =</span> <span class="fu">c</span>(<span class="fu">t</span>(Y[top, ])))</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Fitted components, one row per model</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>cs <span class="sc">|&gt;</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(long, <span class="at">cols =</span> top) <span class="sc">|&gt;</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(<span class="at">.id =</span> <span class="st">&quot;model&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(date, cases)) <span class="sc">+</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_area</span>(<span class="fu">aes</span>(<span class="at">fill =</span> component)) <span class="sc">+</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">data =</span> observed_top, <span class="fu">aes</span>(<span class="at">shape =</span> <span class="st">&quot;Observed cases&quot;</span>),</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">size =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_grid</span>(model <span class="sc">~</span> abs) <span class="sc">+</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_date</span>(<span class="at">date_breaks =</span> <span class="st">&quot;6 months&quot;</span>, <span class="at">date_labels =</span> <span class="st">&quot;%b %y&quot;</span>) <span class="sc">+</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> COMPONENT) <span class="sc">+</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="dv">16</span>) <span class="sc">+</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste</span>(<span class="st">&quot;Catalunya: fitted weekly cases in the four ABS&quot;</span>,</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;with most cases&quot;</span>),</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">&quot;Cases a week&quot;</span>, <span class="at">fill =</span> <span class="cn">NULL</span>, <span class="at">shape =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">&quot;top&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-top" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -3718,14 +3815,14 @@ Figure 9: Fitted weekly cases by component in the four ABS with most cases, one
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># AIC with and without covariates</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>gain <span class="ot">=</span> <span class="fu">sapply</span>(fits, AIC) <span class="sc">-</span> <span class="fu">sapply</span>(fits_cov, AIC)</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>best_cov <span class="ot">=</span> <span class="fu">names</span>(fits_cov)[<span class="fu">which.min</span>(<span class="fu">sapply</span>(fits_cov, AIC))]</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">Model =</span> <span class="fu">names</span>(fits), <span class="st">`</span><span class="at">AIC without</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sapply</span>(fits, AIC),</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">AIC with covariates</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sapply</span>(fits_cov, AIC), <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="st">`</span><span class="at">AIC with - best</span><span class="st">`</span> <span class="ot">=</span> <span class="st">`</span><span class="at">AIC with covariates</span><span class="st">`</span> <span class="sc">-</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">min</span>(<span class="st">`</span><span class="at">AIC with covariates</span><span class="st">`</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">0</span>, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># AIC with and without covariates</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>gain <span class="ot">=</span> <span class="fu">sapply</span>(fits, AIC) <span class="sc">-</span> <span class="fu">sapply</span>(fits_cov, AIC)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>best_cov <span class="ot">=</span> <span class="fu">names</span>(fits_cov)[<span class="fu">which.min</span>(<span class="fu">sapply</span>(fits_cov, AIC))]</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">Model =</span> <span class="fu">names</span>(fits), <span class="st">`</span><span class="at">AIC without</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sapply</span>(fits, AIC),</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">`</span><span class="at">AIC with covariates</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sapply</span>(fits_cov, AIC), <span class="at">check.names =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="st">`</span><span class="at">AIC with - best</span><span class="st">`</span> <span class="ot">=</span> <span class="st">`</span><span class="at">AIC with covariates</span><span class="st">`</span> <span class="sc">-</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">min</span>(<span class="st">`</span><span class="at">AIC with covariates</span><span class="st">`</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">0</span>, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3763,27 +3860,27 @@ Figure 9: Fitted weekly cases by component in the four ABS with most cases, one
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Rate ratios with 95% intervals, by component and model</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>COVARIATE <span class="ot">=</span> <span class="fu">c</span>(<span class="at">temp =</span> <span class="st">&quot;Temperature (per 5 °C)&quot;</span>, <span class="at">alarm =</span> <span class="st">&quot;State of alarm&quot;</span>,</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">work =</span> <span class="st">&quot;Non-essential work suspended&quot;</span>, <span class="at">bars =</span> <span class="st">&quot;Bars and restaurants closed&quot;</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>rows <span class="ot">=</span> <span class="fu">paste0</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;ar.&quot;</span>, <span class="st">&quot;ne.&quot;</span>), <span class="at">each =</span> <span class="dv">4</span>), <span class="fu">names</span>(COVARIATE))</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>rate_ratios <span class="ot">=</span> \(f) {</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">wald</span>(f, rows)[rows, ]</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setNames</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%.2f (%.2f to %.2f)&quot;</span>, x[, <span class="dv">1</span>], x[, <span class="dv">2</span>], x[, <span class="dv">3</span>]), rows)</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co"># One association in words, for the boundary model</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>say <span class="ot">=</span> \(r, rate) {</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">wald</span>(fits_cov<span class="sc">$</span>Boundaries, rows)[r, ]</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    ci <span class="ot">=</span> <span class="fu">sprintf</span>(<span class="st">&quot;(%.2f, %.2f to %.2f)&quot;</span>, x[<span class="dv">1</span>], x[<span class="dv">2</span>], x[<span class="dv">3</span>])</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (x[<span class="dv">2</span>] <span class="sc">&lt;=</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> x[<span class="dv">3</span>] <span class="sc">&gt;=</span> <span class="dv">1</span>) <span class="fu">paste</span>(rate, <span class="st">&quot;no clear change&quot;</span>, ci)</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="fu">sprintf</span>(<span class="st">&quot;%s %d%% %s %s&quot;</span>, rate, <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">abs</span>(<span class="dv">1</span> <span class="sc">-</span> x[<span class="dv">1</span>])),</span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (x[<span class="dv">1</span>] <span class="sc">&lt;</span> <span class="dv">1</span>) <span class="st">&quot;lower&quot;</span> <span class="cf">else</span> <span class="st">&quot;higher&quot;</span>, ci)</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>fits_cov <span class="sc">|&gt;</span></span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(f) <span class="fu">rate_ratios</span>(f)[rows]) <span class="sc">|&gt;</span></span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">rownames&lt;-</span><span class="st">`</span>(<span class="fu">paste0</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;Autoregressive λ: &quot;</span>, <span class="st">&quot;Neighbour φ: &quot;</span>),</span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">each =</span> <span class="dv">4</span>), COVARIATE)) <span class="sc">|&gt;</span></span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Rate ratios with 95% intervals, by component and model</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>COVARIATE <span class="ot">=</span> <span class="fu">c</span>(<span class="at">temp =</span> <span class="st">&quot;Temperature (per 5 °C)&quot;</span>, <span class="at">alarm =</span> <span class="st">&quot;State of alarm&quot;</span>,</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">work =</span> <span class="st">&quot;Non-essential work suspended&quot;</span>, <span class="at">bars =</span> <span class="st">&quot;Bars and restaurants closed&quot;</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>rows <span class="ot">=</span> <span class="fu">paste0</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;ar.&quot;</span>, <span class="st">&quot;ne.&quot;</span>), <span class="at">each =</span> <span class="dv">4</span>), <span class="fu">names</span>(COVARIATE))</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>rate_ratios <span class="ot">=</span> \(f) {</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">wald</span>(f, rows)[rows, ]</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setNames</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%.2f (%.2f to %.2f)&quot;</span>, x[, <span class="dv">1</span>], x[, <span class="dv">2</span>], x[, <span class="dv">3</span>]), rows)</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co"># One association in words, for the boundary model</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>say <span class="ot">=</span> \(r, rate) {</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="fu">wald</span>(fits_cov<span class="sc">$</span>Boundaries, rows)[r, ]</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    ci <span class="ot">=</span> <span class="fu">sprintf</span>(<span class="st">&quot;(%.2f, %.2f to %.2f)&quot;</span>, x[<span class="dv">1</span>], x[<span class="dv">2</span>], x[<span class="dv">3</span>])</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (x[<span class="dv">2</span>] <span class="sc">&lt;=</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> x[<span class="dv">3</span>] <span class="sc">&gt;=</span> <span class="dv">1</span>) <span class="fu">paste</span>(rate, <span class="st">&quot;no clear change&quot;</span>, ci)</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="fu">sprintf</span>(<span class="st">&quot;%s %d%% %s %s&quot;</span>, rate, <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">abs</span>(<span class="dv">1</span> <span class="sc">-</span> x[<span class="dv">1</span>])),</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (x[<span class="dv">1</span>] <span class="sc">&lt;</span> <span class="dv">1</span>) <span class="st">&quot;lower&quot;</span> <span class="cf">else</span> <span class="st">&quot;higher&quot;</span>, ci)</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>fits_cov <span class="sc">|&gt;</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(\(f) <span class="fu">rate_ratios</span>(f)[rows]) <span class="sc">|&gt;</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">rownames&lt;-</span><span class="st">`</span>(<span class="fu">paste0</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;Autoregressive λ: &quot;</span>, <span class="st">&quot;Neighbour φ: &quot;</span>),</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">each =</span> <span class="dv">4</span>), COVARIATE)) <span class="sc">|&gt;</span></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3888,7 +3985,7 @@ Figure 9: Fitted weekly cases by component in the four ABS with most cases, one
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>R version 4.6.1 (2026-06-24)

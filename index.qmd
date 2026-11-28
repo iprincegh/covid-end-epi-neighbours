@@ -145,7 +145,7 @@ diag(trips) = 0
 # Daily trips out of each ABS, temperature and restrictions, from the panel
 panel = spain("outputs/catalunya/panel/cat_abs_main_noncollinear.parquet") |>
 	arrow::read_parquet(col_select = c("id", "date", "trips_out", "temp_mean",
-		"npi_alarm", "npi_hibernation", "npi_hospitality")) |>
+		"npi_alarm", "npi_hibernation", "npi_curfew", "npi_hospitality")) |>
 	filter(id %in% ids, date >= min(d$dates), date <= max(d$dates)) |>
 	mutate(week = week[match(date, d$dates)])
 stopifnot(nrow(panel) == n * 406, !anyNA(panel))
@@ -423,11 +423,41 @@ share = trips / rowSums(trips)
 stopifnot(all.equal(unname(rowSums(share)), rep(1, n)))
 ```
 
-## Stability of trip orders over time
+## Stability of trip orders across restriction phases
+
+The restrictions split the period into phases, runs of days with the same measures in force. Trip orders built from
+each phase's trips show whether people's destinations changed with the restrictions.
 
 ```{r}
-#| label: stability
-# Trip orders from each month's trips, against the whole-period orders
+#| label: phases
+# Restriction phase of each day: the measures in force, in words
+MEASURE = c(npi_alarm = "state of alarm",
+	npi_hibernation = "non-essential work suspended", npi_curfew = "curfew",
+	npi_hospitality = "bars and restaurants closed")
+days_npi = panel |>
+	filter(id == ids[1]) |>
+	arrange(date)
+in_force = as.matrix(days_npi[names(MEASURE)]) == 1
+phase_name = apply(in_force, 1, \(x) if (any(x)) paste(MEASURE[x],
+	collapse = ", ") else "no restriction")
+phases = unique(phase_name)
+phase = match(phase_name, phases)
+
+# Mean daily trips between ABS in each phase, [origin, destination, phase]
+index = \(v) setNames(data.frame(ids, seq_len(n)), c(v, paste0(v, "_i")))
+flows = spain("data/cat_od_bha_reprojected") |>
+	arrow::open_dataset() |>
+	inner_join(index("source"), by = "source") |>
+	inner_join(index("target"), by = "target") |>
+	inner_join(data.frame(date = d$dates, phase = phase), by = "date") |>
+	group_by(source_i, target_i, phase) |>
+	summarise(trips = sum(trips)) |>
+	collect()
+trips_phase = array(0, c(n, n, length(phases)))
+trips_phase[cbind(flows$source_i, flows$target_i, flows$phase)] = flows$trips
+trips_phase = sweep(trips_phase, 3, tabulate(phase), "/")
+
+# Trip orders of each phase, and the share of neighbours they keep
 trip_orders = \(x) {
 	diag(x) = 0
 	m = matrix(0L, n, n, dimnames = list(ids, ids))
@@ -437,23 +467,49 @@ trip_orders = \(x) {
 	}
 	m
 }
-same_order = \(x, y, k) mean(sapply(1:n, \(j) {
+same_order = \(x, y, k, rows = 1:n) mean(sapply(rows, \(j) {
 	g = x[j, ] == k
 	if (any(g)) mean(y[j, g] == k) else NA
 }), na.rm = TRUE)
-monthly = lapply(seq_along(od$months), \(m) trip_orders(od$trips[, , m]))
-stability = data.frame(Month = od$months,
-	Days = as.integer(table(format(d$dates, "%Y-%m"))[od$months]),
-	t(sapply(monthly, \(m) round(100 * sapply(1:3, same_order, x = mob,
+phase_orders = lapply(seq_along(phases), \(p) trip_orders(trips_phase[, , p]))
+stability = data.frame(Phase = sub("^(.)", "\\U\\1", phases, perl = TRUE),
+	Days = tabulate(phase),
+	t(sapply(phase_orders, \(m) round(100 * sapply(1:3, same_order, x = mob,
 		y = m)))))
 names(stability)[3:5] = paste0("Order ", 1:3, " (%)")
 knitr::kable(stability)
 ```
 
-The share of an ABS's neighbours at each order that are the same in a month's trips as over the whole period. An
-ABS's most-visited destinations hardly change: `r min(stability[stability$Days > 7, 3])`% to
-`r max(stability[stability$Days > 7, 3])`% of order-1 neighbours are the same in every full month, the lowest in the
-first lockdown. One ranking for the whole period is therefore a fair summary.
+The table gives the share of an ABS's neighbours at each order that are the same in a phase as over the whole period.
+An ABS's most-visited destinations hardly change: `r min(stability[[3]])`% to `r max(stability[[3]])`% of order-1
+neighbours stay the same in every phase, the lowest when non-essential work was suspended. One matrix for the whole
+period is therefore a fair summary, and weights that switch with the phase do not improve the fit (Section 5.1.2).
+
+## Urban and rural ABS
+
+```{r}
+#| label: urban-rural
+# Population density terciles
+area = read.csv(spain("outputs/catalunya/tables/cat_abs_areas.csv"),
+	colClasses = c(id = "character"))
+density = popv / area$area_km2[match(ids, area$id)]
+setting = cut(density, quantile(density, 0:3 / 3), include.lowest = TRUE,
+	labels = c("Rural", "Middle", "Urban"))
+
+# Trip neighbours that are also boundary neighbours, and the trips they take
+order1_trips = sapply(1:n, \(j) sum(trips[j, mob[j, ] == 1]) / sum(trips[j, ]))
+data.frame(Setting = levels(setting),
+		`People per km² (median)` = round(tapply(density, setting, median)),
+		`Order-1 trip neighbours also adjacent (%)` = sapply(levels(setting),
+			\(s) round(100 * same_order(mob, geo, 1, which(setting == s)))),
+		`Trips to order-1 trip neighbours (%)` = round(100 *
+			tapply(order1_trips, setting, mean)), check.names = FALSE) |>
+	knitr::kable(row.names = FALSE)
+```
+
+Boundaries and trips disagree most in urban ABS. Rural ABS send most of their trips to a few destinations, mostly
+adjacent ones. Urban ABS spread their trips over many destinations, and fewer of their closest trip neighbours share a
+border with them.
 
 ## Overlap of boundary and trip orders
 
@@ -631,6 +687,43 @@ cmp |>
 	mutate(`AIC - best` = AIC - min(AIC), .after = AIC) |>
 	arrange(AIC) |>
 	knitr::kable(digits = c(0, 0, 0, 0, 2), row.names = FALSE)
+```
+
+### Trip neighbours by restriction phase
+
+Weights that switch with the restriction phase of each week, against one matrix for the whole period. For trip
+orders, the decay is profiled over a grid and counted as one parameter.
+
+```{r}
+#| label: phase-fits
+# Phase of each week: the phase of most of its days
+week_phase = sapply(split(phase, week),
+	\(p) as.integer(names(which.max(table(p)))))
+by_week = \(f) {
+	x = array(0, c(n, n, 58))
+	for (w in 1:58) x[, , w] = f(week_phase[w])
+	x
+}
+fit_weights = \(W) hhh4(sts_geo,
+	modifyList(model, list(ne = list(weights = W))))
+row_norm = \(m) m / rowSums(m)
+powerlaw = \(o, dd) row_norm(ifelse(o >= 1 & o <= 3, pmax(o, 1)^-dd, 0))
+
+# Trip shares by phase
+shares_phase = by_week(\(p) row_norm(`diag<-`(trips_phase[, , p], 0))) |>
+	fit_weights()
+
+# Trip orders by phase, decay profiled
+grid = seq(0.4, 3, by = 0.1)
+profile = sapply(grid, \(dd) {
+	P = lapply(phase_orders, powerlaw, dd = dd)
+	as.numeric(logLik(fit_weights(by_week(\(p) P[[p]]))))
+})
+data.frame(Neighbours = c("Trip shares", "Trip orders"),
+		`One matrix` = sapply(fits[c("Trip shares", "Trip orders")], AIC),
+		`By phase` = c(AIC(shares_phase), -2 * max(profile) + 2 * 7),
+		check.names = FALSE) |>
+	knitr::kable(digits = 0, row.names = FALSE)
 ```
 
 ### One-week-ahead forecasts
