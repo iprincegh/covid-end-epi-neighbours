@@ -508,6 +508,34 @@ urban_rural = data.frame(Setting = levels(setting),
 knitr::kable(urban_rural, row.names = FALSE)
 ```
 
+```{r}
+#| label: fig-setting
+#| fig-cap: "ABS by population density: the third with the lowest density (rural), the middle third and the third with the highest (urban). Right: zoom to the Barcelona area, where most urban ABS lie."
+#| fig-width: 10
+#| fig-height: 5
+# Density terciles on the map, darker for denser, with a zoom to the urban ABS
+setting_map = \(zoom = NULL) abs |>
+	mutate(setting = setting) |>
+	ggplot() +
+	geom_sf(aes(fill = setting), colour = "white", linewidth = 0.05) +
+	coord_sf(xlim = zoom[c(1, 3)], ylim = zoom[c(2, 4)]) +
+	scale_fill_manual(values = c(Rural = "#d9f0d3", Middle = "#7fbf7b",
+		Urban = "#1b7837")) +
+	labs(fill = NULL) +
+	theme_void()
+# Zoom: the urban ABS within 20 km of Barcelona city
+barcelona = abs[startsWith(abs$name, "Barcelona - "), ] |>
+	st_union() |>
+	st_centroid()
+urban = abs[setting == "Urban", ]
+urban = urban[as.numeric(st_distance(urban, barcelona)) < 20000, ] |>
+	st_buffer(1000) |>
+	st_bbox()
+setting_map() + setting_map(urban) +
+	plot_layout(guides = "collect") +
+	plot_annotation(title = "Catalunya: rural and urban ABS")
+```
+
 Boundaries and trips disagree most in urban ABS. Rural ABS send most of their trips to a few destinations, mostly
 adjacent ones. Urban ABS spread their trips over many destinations, and fewer of their closest trip neighbours share a
 border with them.
@@ -961,7 +989,8 @@ cs |>
 	geom_point(data = observed_top, aes(shape = "Observed cases"),
 		size = 0.3) +
 	facet_grid(model ~ abs) +
-	scale_x_date(date_breaks = "6 months", date_labels = "%b %y") +
+	scale_x_date(breaks = as.Date(c("2020-07-01", "2021-01-01")),
+		date_labels = "%b %y") +
 	scale_fill_manual(values = COMPONENT) +
 	scale_shape_manual(values = 16) +
 	labs(title = paste("Catalunya: fitted weekly cases in the four ABS",
