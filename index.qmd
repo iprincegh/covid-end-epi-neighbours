@@ -9,13 +9,6 @@ format:
     code-fold: true
     embed-resources: true
     lightbox: auto
-  typst:
-    toc: true
-    number-sections: true
-    echo: false
-    margin:
-      x: 2cm
-      y: 2cm
 bibliography: references.bib
 execute:
   warning: false
@@ -49,7 +42,6 @@ The data combine five sources:
 
 # Data
 
-::: {.content-visible when-format="html"}
 ## Setup
 
 ```{r}
@@ -119,9 +111,7 @@ long = \(m, cols = seq_len(n)) names(COMPONENT) |>
 	bind_rows() |>
 	mutate(component = factor(component, rev(names(COMPONENT))))
 ```
-:::
 
-::: {.content-visible when-format="html"}
 ## Load and process data
 
 ```{r}
@@ -182,7 +172,6 @@ npi = NPI |>
 alarm = filter(npi, measure == "npi_alarm")
 stopifnot(nrow(npi) == 5, nrow(alarm) == 2)
 ```
-:::
 
 **Catalunya: `r ncol(Y)` weeks, `r n` ABS, `r format(sum(Y), big.mark = ",")` cases.**
 
@@ -319,7 +308,6 @@ frame = \(w) {
 
 ```{r}
 #| label: fig-animation
-#| eval: !expr knitr::is_html_output()
 #| fig-cap: "Weekly cases per 100,000 by ABS, one frame per week. Below: cases per 100,000 in Catalunya and trips out of all ABS, with the mapped week marked and the restriction lines of Figure 1."
 #| fig-width: 8
 #| fig-height: 8.5
@@ -328,16 +316,6 @@ frame = \(w) {
 #| interval: 0.4
 # One frame per week
 for (w in 1:58) print(frame(w))
-```
-
-```{r}
-#| label: fig-peak-week
-#| eval: !expr '!knitr::is_html_output()'
-#| fig-cap: "Weekly cases per 100,000 by ABS in the week cases peaked; the online version animates all weeks. Below: cases per 100,000 in Catalunya and trips out of all ABS, with the week marked and the restriction lines of Figure 1."
-#| fig-width: 8
-#| fig-height: 8.5
-# The week with most cases
-frame(which.max(colSums(Y)))
 ```
 
 ## Spatial clustering
@@ -417,7 +395,6 @@ across the ABS $i$ it is linked to, so the weights from each source sum to 1.
 - **Trip shares**: if 10% of the trips leaving ABS $j$ end in ABS $i$, then 10% of $j$'s neighbour weight goes to $i$.
   Every ABS that receives trips from $j$ is a neighbour.
 
-::: {.content-visible when-format="html"}
 ## Create neighbourhoods
 
 ```{r}
@@ -445,7 +422,6 @@ stopifnot(rowSums(mob == 1) == rowSums(geo == 1))
 share = trips / rowSums(trips)
 stopifnot(all.equal(unname(rowSums(share)), rep(1, n)))
 ```
-:::
 
 ## Stability of trip orders over time
 
@@ -577,7 +553,6 @@ they compare a week with the measure in force on all seven days with a week with
 with the weekly cases, not the effect of a measure, and they act on the cases that follow from past cases, not on
 trips.
 
-::: {.content-visible when-format="html"}
 ## Model fitting
 
 ```{r}
@@ -631,7 +606,6 @@ fits_cov = list(
 	`Trip shares` = hhh4(sts_geo, with_covariates(shares_model)))
 stopifnot(sapply(fits_cov, \(f) f$convergence))
 ```
-:::
 
 # Results
 
@@ -998,9 +972,7 @@ Only the second gives mobility its own share of the fitted cases.
 sessionInfo()
 ```
 
-::: {.content-visible when-format="html"}
 # References
 
 ::: {#refs}
-:::
 :::
